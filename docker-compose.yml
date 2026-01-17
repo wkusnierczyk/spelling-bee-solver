@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  sbs-service:
+    build: .
+    image: sbs-solver:latest
+    container_name: sbs_service
+    ports:
+      - "8080:8080"
+    environment:
+      - RUST_LOG=info
+      # You can mount a local dictionary if you don't want the baked-in one
+      # - SBS_DICT=/app/data/custom_dict.txt
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
