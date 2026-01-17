@@ -9,12 +9,12 @@ RELEASE_NAME="sbs-prod"
 NAMESPACE="sbs-namespace"
 
 echo "--- GCP Unified Deployment (Optimized) ---"
-echo "Target: $PROJECT_ID | Cluster: $CLUSTER_NAME"
+echo "Target: $PROJECT_ID | Cluster: $CLUSTER_NAME | Arch: linux/amd64"
 
 # 1. Config Context
 gcloud container clusters get-credentials "$CLUSTER_NAME" --zone "$ZONE" --project "$PROJECT_ID"
 
-# 2. Build & Push BACKEND (Docker Build is fine here, Rust compiles relatively fast)
+# 2. Build & Push BACKEND (Docker Build is fine here)
 echo "[Backend] Building for linux/amd64..."
 docker build --platform linux/amd64 -t "sbs-solver:latest" .
 docker tag "sbs-solver:latest" "gcr.io/$PROJECT_ID/sbs-solver:latest"
@@ -24,11 +24,11 @@ docker push "gcr.io/$PROJECT_ID/sbs-solver:latest"
 # 3. Build & Push FRONTEND (Hybrid Approach)
 echo "[Frontend] 1. Building Locally (Native Speed)..."
 cd sbs-gui
-# We run the heavy build on the Host machine (Fast), not inside QEMU
+# We run the heavy build on the Host machine
 ./gradlew :composeApp:jsBrowserDistribution --no-daemon -Dorg.gradle.jvmargs="-Xmx2g"
 
-echo "[Frontend] 2. Packaging Docker Image (linux/amd64)..."
-# We use the specialized 'Dockerfile.cloud' which just copies the files we just built
+echo "[Frontend] 2. Packaging Cloud Image (linux/amd64)..."
+# Uses Dockerfile.cloud + nginx.conf.template
 docker build --platform linux/amd64 -f Dockerfile.cloud -t "sbs-gui:latest" .
 docker tag "sbs-gui:latest" "gcr.io/$PROJECT_ID/sbs-gui:latest"
 

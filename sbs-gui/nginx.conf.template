@@ -2,8 +2,8 @@ server {
     listen       80;
     listen  [::]:80;
     server_name  localhost;
-    
-    # Ensure correct MIME types (Critical for WebAssembly/JS)
+
+    # Fix Blank Page: Explicitly support WASM mime type
     include /etc/nginx/mime.types;
     types {
         application/wasm wasm;
@@ -16,7 +16,7 @@ server {
         try_files $uri $uri/ /index.html;
     }
 
-    # Proxy API calls to the internal backend
+    # Proxy API calls to the internal backend (Fixes CORS/Connection)
     location /solve {
         proxy_pass ${API_URL}/solve;
         proxy_set_header Host $host;
