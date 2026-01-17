@@ -2,9 +2,5 @@
 .gradle
 .idea
 local.properties
-
-# Ignore all build folders...
 **/build
-
-# ...BUT allow the development artifacts
-!composeApp/build/dist/js/developmentExecutable
+!composeApp/build/dist/js/productionExecutable

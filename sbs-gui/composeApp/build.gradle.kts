@@ -9,12 +9,15 @@ plugins {
 kotlin {
     jvm("desktop")
     
-    // SWITCHED FROM wasmJs TO js(IR) FOR STABILITY
     js(IR) {
         moduleName = "sbs-gui"
         browser {
             commonWebpackConfig {
                 outputFileName = "sbs-gui.js"
+                // VITAL: This triggers the plugin to scan and copy dependency assets (like skiko.wasm)
+                cssSupport {
+                    enabled.set(true)
+                }
             }
         }
         binaries.executable()
@@ -29,7 +32,6 @@ kotlin {
                 implementation(compose.ui)
                 implementation(compose.components.resources)
                 
-                // Ktor 2.3.12 is stable for JS
                 val ktorVersion = "2.3.12"
                 implementation("io.ktor:ktor-client-core:$ktorVersion")
                 implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
@@ -44,7 +46,6 @@ kotlin {
         }
         val jsMain by getting {
             dependencies {
-                // The JS engine is robust and stable
                 implementation("io.ktor:ktor-client-js:2.3.12")
             }
         }

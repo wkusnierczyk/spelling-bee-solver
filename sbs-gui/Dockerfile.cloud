@@ -1,11 +1,10 @@
 FROM nginx:alpine
 
-# Copy Nginx Template first
+# Copy Nginx Template
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 
-# Copy ALL build artifacts (JS, WASM, Resources) recursively
-# We use '.' to copy the *contents* of the directory, not the directory itself
-COPY composeApp/build/dist/js/developmentExecutable/ . /usr/share/nginx/html/
+# Copy ALL artifacts (Recursive)
+COPY composeApp/build/dist/js/productionExecutable/ . /usr/share/nginx/html/
 
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]

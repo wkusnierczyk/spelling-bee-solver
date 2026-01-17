@@ -8,7 +8,7 @@ ZONE="${GCP_ZONE:-europe-west6-a}"
 RELEASE_NAME="sbs-prod"
 NAMESPACE="sbs-namespace"
 
-echo "--- GCP Unified Deployment (Dev Build) ---"
+echo "--- GCP Unified Deployment (Clean Build) ---"
 echo "Target: $PROJECT_ID | Cluster: $CLUSTER_NAME | Arch: linux/amd64"
 
 # 1. Config Context
@@ -21,14 +21,13 @@ docker tag "sbs-solver:latest" "gcr.io/$PROJECT_ID/sbs-solver:latest"
 echo "[Backend] Pushing..."
 docker push "gcr.io/$PROJECT_ID/sbs-solver:latest"
 
-# 3. Build & Push FRONTEND (Hybrid Approach)
-echo "[Frontend] 1. Building Locally (Dev Mode)..."
+# 3. Build & Push FRONTEND (Fresh Build)
+echo "[Frontend] 1. Building Locally (Fresh Production Build)..."
 cd sbs-gui
-# CHANGED: jsBrowserDistribution -> jsBrowserDevelopmentExecutableDistribution
-# This explicitly builds the un-minified version which is safer for Skia init
-./gradlew :composeApp:jsBrowserDevelopmentExecutableDistribution --no-daemon -Dorg.gradle.jvmargs="-Xmx2g"
+# We use 'jsBrowserDistribution' (Production)
+./gradlew clean :composeApp:jsBrowserDistribution --no-daemon -Dorg.gradle.jvmargs="-Xmx2g"
 
-echo "[Frontend] 2. Packaging Cloud Image (linux/amd64)..."
+echo "[Frontend] 2. Packaging Cloud Image..."
 docker build --platform linux/amd64 -f Dockerfile.cloud -t "sbs-gui:latest" .
 docker tag "sbs-gui:latest" "gcr.io/$PROJECT_ID/sbs-gui:latest"
 
