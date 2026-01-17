@@ -1,6 +1,10 @@
 
 .gradle
-build
-*/build
-local.properties
 .idea
+local.properties
+
+# Ignore all build folders by default to keep context light...
+**/build
+
+# ...BUT explicitly ALLOW the artifacts we just built locally
+!composeApp/build/dist/js/productionExecutable

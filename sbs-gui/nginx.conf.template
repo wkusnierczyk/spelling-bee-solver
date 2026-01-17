@@ -3,7 +3,7 @@ server {
     listen  [::]:80;
     server_name  localhost;
 
-    # Fix Blank Page: Explicitly support WASM mime type
+    # Fix Blank Page: Explicitly support WASM/JS mime types
     include /etc/nginx/mime.types;
     types {
         application/wasm wasm;
@@ -16,7 +16,7 @@ server {
         try_files $uri $uri/ /index.html;
     }
 
-    # Proxy API calls to the internal backend (Fixes CORS/Connection)
+    # Proxy API calls to the internal backend
     location /solve {
         proxy_pass ${API_URL}/solve;
         proxy_set_header Host $host;
