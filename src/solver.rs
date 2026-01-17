@@ -17,7 +17,6 @@ impl TrieNode {
     fn insert(&mut self, word: &str) {
         let mut node = self;
         for ch in word.chars() {
-            // Fix: Use or_default()
             node = node.children.entry(ch).or_default();
         }
         node.is_end_of_word = true;
@@ -114,7 +113,6 @@ impl Solver {
         };
 
         // Start DFS from root
-        // Fix: Removed &self from recursion as it was unused
         Self::find_words(&self.trie, String::new(), &mut ctx);
 
         Ok(results)
@@ -125,7 +123,6 @@ impl Solver {
             return;
         }
 
-        // Fix: Collapsed if statement
         if node.is_end_of_word && current_word.len() >= ctx.min_len {
             // Check if all required chars are present
             let mut all_req_present = true;
@@ -156,13 +153,11 @@ mod tests {
 
     #[test]
     fn test_solver_basic() {
-        let mut config = Config::new().with_letters("abcdefg").with_present("a");
-        // Override dictionary path to avoid IO in unit test,
-        // strictly speaking load_dictionary won't be called here.
+        // Fix: Removed 'mut' from config
+        let config = Config::new().with_letters("abcdefg").with_present("a");
 
         let mut solver = Solver::new(config);
 
-        // Inject mock dictionary
         solver.load_words_slice(&[
             "bad",   // too short
             "fade",  // valid
@@ -175,13 +170,13 @@ mod tests {
 
         assert!(results.contains("fade"));
         assert!(results.contains("faced"));
-        assert!(!results.contains("bad")); // length < 4
-        assert!(!results.contains("zzzz")); // z not allowed
+        assert!(!results.contains("bad"));
+        assert!(!results.contains("zzzz"));
     }
 
     #[test]
     fn test_missing_required_letter() {
-        let config = Config::new().with_letters("abcdefg").with_present("z"); // z is required but not in list (impossible, but logic should handle)
+        let config = Config::new().with_letters("abcdefg").with_present("z");
 
         let mut solver = Solver::new(config);
         solver.load_words_slice(&["faced"]);

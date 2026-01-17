@@ -91,7 +91,7 @@ fn main() {
 
     // 4. Initialize Solver
     let mut solver = Solver::new(config.clone()); // Clone config for solver ownership
-    
+
     // 5. Load Dictionary
     if let Err(e) = solver.load_dictionary() {
         eprintln!("Error loading dictionary: {}", e);
@@ -104,7 +104,7 @@ fn main() {
         Ok(words) => {
             let mut sorted_words: Vec<_> = words.into_iter().collect();
             sorted_words.sort();
-            
+
             // 7. Output handling
             if let Some(out_path) = config.output {
                 let path = PathBuf::from(out_path);
