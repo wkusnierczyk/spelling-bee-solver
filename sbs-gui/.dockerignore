@@ -3,8 +3,8 @@
 .idea
 local.properties
 
-# Ignore all build folders by default to keep context light...
+# Ignore all build folders...
 **/build
 
-# ...BUT explicitly ALLOW the artifacts we just built locally
-!composeApp/build/dist/js/productionExecutable
+# ...BUT allow the development artifacts
+!composeApp/build/dist/js/developmentExecutable

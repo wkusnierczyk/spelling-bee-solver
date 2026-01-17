@@ -8,27 +8,27 @@ ZONE="${GCP_ZONE:-europe-west6-a}"
 RELEASE_NAME="sbs-prod"
 NAMESPACE="sbs-namespace"
 
-echo "--- GCP Unified Deployment (Optimized) ---"
+echo "--- GCP Unified Deployment (Dev Build) ---"
 echo "Target: $PROJECT_ID | Cluster: $CLUSTER_NAME | Arch: linux/amd64"
 
 # 1. Config Context
 gcloud container clusters get-credentials "$CLUSTER_NAME" --zone "$ZONE" --project "$PROJECT_ID"
 
-# 2. Build & Push BACKEND (Docker Build is fine here)
-echo "[Backend] Building for linux/amd64..."
+# 2. Build & Push BACKEND
+echo "[Backend] Building..."
 docker build --platform linux/amd64 -t "sbs-solver:latest" .
 docker tag "sbs-solver:latest" "gcr.io/$PROJECT_ID/sbs-solver:latest"
 echo "[Backend] Pushing..."
 docker push "gcr.io/$PROJECT_ID/sbs-solver:latest"
 
 # 3. Build & Push FRONTEND (Hybrid Approach)
-echo "[Frontend] 1. Building Locally (Native Speed)..."
+echo "[Frontend] 1. Building Locally (Dev Mode)..."
 cd sbs-gui
-# We run the heavy build on the Host machine
-./gradlew :composeApp:jsBrowserDistribution --no-daemon -Dorg.gradle.jvmargs="-Xmx2g"
+# CHANGED: jsBrowserDistribution -> jsBrowserDevelopmentExecutableDistribution
+# This explicitly builds the un-minified version which is safer for Skia init
+./gradlew :composeApp:jsBrowserDevelopmentExecutableDistribution --no-daemon -Dorg.gradle.jvmargs="-Xmx2g"
 
 echo "[Frontend] 2. Packaging Cloud Image (linux/amd64)..."
-# Uses Dockerfile.cloud + nginx.conf.template
 docker build --platform linux/amd64 -f Dockerfile.cloud -t "sbs-gui:latest" .
 docker tag "sbs-gui:latest" "gcr.io/$PROJECT_ID/sbs-gui:latest"
 
