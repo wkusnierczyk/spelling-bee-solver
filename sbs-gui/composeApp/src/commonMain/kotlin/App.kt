@@ -20,7 +20,8 @@ import kotlinx.coroutines.launch
 @Serializable
 data class SolveRequest(
     val letters: String,
-    val present: String
+    val present: String,
+    val repeats: Int? = null
 )
 
 @Composable
@@ -34,15 +35,19 @@ fun App() {
 
 @Composable
 fun SolverScreen() {
+    // UI State
+    var serverUrl by remember { mutableStateOf("http://localhost:8080") }
     var letters by remember { mutableStateOf("") }
     var present by remember { mutableStateOf("") }
+    var repeats by remember { mutableStateOf("") } // Optional input
+    
     var results by remember { mutableStateOf<List<String>>(emptyList()) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
     
-    // Create Client
+    // Create HTTP Client
     val client = remember {
         HttpClient {
             install(ContentNegotiation) {
@@ -58,6 +63,21 @@ fun SolverScreen() {
     ) {
         Text("Spelling Bee Solver", style = MaterialTheme.typography.h4)
         
+        // --- Server Configuration ---
+        OutlinedTextField(
+            value = serverUrl,
+            onValueChange = { serverUrl = it },
+            label = { Text("Server URL") },
+            placeholder = { Text("http://34.x.x.x:80") },
+            modifier = Modifier.fillMaxWidth(),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = MaterialTheme.colors.primary.copy(alpha = 0.5f)
+            )
+        )
+        
+        Divider(modifier = Modifier.padding(vertical = 5.dp))
+
+        // --- Puzzle Configuration ---
         OutlinedTextField(
             value = letters,
             onValueChange = { letters = it },
@@ -71,25 +91,44 @@ fun SolverScreen() {
             label = { Text("Obligatory Letter (e.g. 'a')") },
             modifier = Modifier.fillMaxWidth()
         )
+
+        OutlinedTextField(
+            value = repeats,
+            onValueChange = { 
+                // Only allow numeric input
+                if (it.all { char -> char.isDigit() }) {
+                    repeats = it 
+                }
+            },
+            label = { Text("Max Repeats (Optional)") },
+            modifier = Modifier.fillMaxWidth()
+        )
         
         Button(
             onClick = {
                 scope.launch {
                     isLoading = true
                     errorMessage = null
+                    results = emptyList() // Clear previous results
                     try {
-                        val response = client.post("http://localhost:8080/solve") {
+                        // Ensure endpoint has /solve
+                        val baseUrl = serverUrl.trimEnd('/')
+                        val endpoint = if (baseUrl.endsWith("/solve")) baseUrl else "$baseUrl/solve"
+                        
+                        val repeatsInt = if (repeats.isNotEmpty()) repeats.toInt() else null
+
+                        val response = client.post(endpoint) {
                             header("Content-Type", "application/json")
-                            setBody(SolveRequest(letters, present))
+                            setBody(SolveRequest(letters, present, repeatsInt))
                         }
                         
                         if (response.status.value in 200..299) {
                             results = response.body()
                         } else {
-                            errorMessage = "Error: ${response.bodyAsText()}"
+                            errorMessage = "Error ${response.status.value}: ${response.bodyAsText()}"
                         }
                     } catch (e: Exception) {
-                        errorMessage = "Failed to connect: ${e.message}"
+                        errorMessage = "Connection Failed: ${e.message}"
                     } finally {
                         isLoading = false
                     }
@@ -104,20 +143,25 @@ fun SolverScreen() {
             }
         }
         
+        // --- Output ---
         if (errorMessage != null) {
             Text(errorMessage!!, color = Color.Red)
         }
         
-        Divider()
-        
-        Text("Found Words: ${results.size}", style = MaterialTheme.typography.subtitle1)
+        if (results.isNotEmpty()) {
+            Text("Found ${results.size} words", style = MaterialTheme.typography.h6)
+        }
         
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 16.dp)
         ) {
             items(results) { word ->
-                Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), elevation = 2.dp) {
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), 
+                    elevation = 2.dp,
+                    backgroundColor = Color(0xFFF5F5F5)
+                ) {
                     Text(
                         text = word,
                         modifier = Modifier.padding(16.dp),
