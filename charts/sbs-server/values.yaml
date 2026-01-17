@@ -1,19 +1,22 @@
 # Default values for sbs-stack.
-replicaCount: 2
+replicaCount: 1
 
 backend:
   image:
     repository: sbs-solver
     tag: "latest"
   service:
-    type: LoadBalancer
+    type: ClusterIP
     port: 80
     targetPort: 8080
 
 frontend:
   image:
     repository: sbs-gui
-    tag: "latest"
+    # We will override this tag in the deploy script, 
+    # but 'Always' ensures we never use a stale cache.
+    pullPolicy: Always 
+    tag: "v2-react"
   service:
     type: LoadBalancer
     port: 80
