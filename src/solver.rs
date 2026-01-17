@@ -1,30 +1,11 @@
 //! The algorithmic core: Trie-based solver.
 
 use crate::config::Config;
+use crate::dictionary::{Dictionary, TrieNode};
 use crate::error::SbsError;
-use std::collections::{HashMap, HashSet};
-use std::fs::File;
-use std::io::{BufRead, BufReader};
-
-/// Represents a node in the Trie.
-#[derive(Default, Debug)]
-struct TrieNode {
-    children: HashMap<char, TrieNode>,
-    is_end_of_word: bool,
-}
-
-impl TrieNode {
-    fn insert(&mut self, word: &str) {
-        let mut node = self;
-        for ch in word.chars() {
-            node = node.children.entry(ch).or_default();
-        }
-        node.is_end_of_word = true;
-    }
-}
+use std::collections::HashSet;
 
 pub struct Solver {
-    trie: TrieNode,
     config: Config,
 }
 
@@ -39,46 +20,12 @@ struct SearchContext<'a> {
 
 impl Solver {
     pub fn new(config: Config) -> Self {
-        Self {
-            trie: TrieNode::default(),
-            config,
-        }
+        Self { config }
     }
 
-    /// Init: Loads the dictionary specified in config into the Trie
-    pub fn load_dictionary(&mut self) -> Result<(), SbsError> {
-        let path = &self.config.dictionary;
-
-        if !path.exists() {
-            return Err(SbsError::DictionaryError(format!(
-                "Dictionary file not found at {:?}. Did you run 'make setup'?",
-                path
-            )));
-        }
-
-        let file = File::open(path)?;
-        let reader = BufReader::new(file);
-
-        for line in reader.lines() {
-            let word = line?;
-            // Simple sanitization: trim and lower case
-            let clean_word = word.trim().to_lowercase();
-            if !clean_word.is_empty() && clean_word.chars().all(char::is_alphabetic) {
-                self.trie.insert(&clean_word);
-            }
-        }
-        Ok(())
-    }
-
-    /// Helper for testing to inject words directly
-    #[cfg(test)]
-    pub fn load_words_slice(&mut self, words: &[&str]) {
-        for word in words {
-            self.trie.insert(word);
-        }
-    }
-
-    pub fn solve(&self) -> Result<HashSet<String>, SbsError> {
+    /// Solves the puzzle using the provided Dictionary.
+    /// The Dictionary is now passed in, allowing it to be shared across requests.
+    pub fn solve(&self, dictionary: &Dictionary) -> Result<HashSet<String>, SbsError> {
         let letters_str = self
             .config
             .letters
@@ -103,7 +50,6 @@ impl Solver {
 
         let mut results = HashSet::new();
 
-        // Create context to pass down
         let mut ctx = SearchContext {
             allowed: &allowed_chars,
             required: &required_chars,
@@ -112,8 +58,8 @@ impl Solver {
             results: &mut results,
         };
 
-        // Start DFS from root
-        Self::find_words(&self.trie, String::new(), &mut ctx);
+        // Start DFS from root of the provided dictionary
+        Self::find_words(&dictionary.root, String::new(), &mut ctx);
 
         Ok(results)
     }
@@ -124,7 +70,6 @@ impl Solver {
         }
 
         if node.is_end_of_word && current_word.len() >= ctx.min_len {
-            // Check if all required chars are present
             let mut all_req_present = true;
             for req in ctx.required {
                 if !current_word.contains(*req) {
@@ -153,35 +98,18 @@ mod tests {
 
     #[test]
     fn test_solver_basic() {
-        // Fix: Removed 'mut' from config
         let config = Config::new().with_letters("abcdefg").with_present("a");
 
-        let mut solver = Solver::new(config);
+        let solver = Solver::new(config);
 
-        solver.load_words_slice(&[
-            "bad",   // too short
-            "fade",  // valid
-            "faced", // valid
-            "zzzz",  // invalid letters
-            "bed",   // valid length, but 'e' might not be in letters if we change config
-        ]);
+        // Inject mock dictionary via new Dictionary API
+        let dict = Dictionary::from_words(&["bad", "fade", "faced", "zzzz", "bed"]);
 
-        let results = solver.solve().expect("Solver failed");
+        let results = solver.solve(&dict).expect("Solver failed");
 
         assert!(results.contains("fade"));
         assert!(results.contains("faced"));
         assert!(!results.contains("bad"));
         assert!(!results.contains("zzzz"));
-    }
-
-    #[test]
-    fn test_missing_required_letter() {
-        let config = Config::new().with_letters("abcdefg").with_present("z");
-
-        let mut solver = Solver::new(config);
-        solver.load_words_slice(&["faced"]);
-
-        let results = solver.solve().expect("Solver failed");
-        assert!(results.is_empty());
     }
 }

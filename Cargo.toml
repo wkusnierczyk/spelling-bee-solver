@@ -1,6 +1,6 @@
 [package]
 name = "sbs"
-version = "0.1.0"
+version = "0.1.2"
 edition = "2021"
 authors = ["Your Name <your.email@example.com>"]
 description = "Spelling Bee Solver Core Library"
@@ -12,7 +12,26 @@ serde_yaml = "0.9"
 reqwest = { version = "0.11", features = ["blocking", "json"] }
 thiserror = "1.0"
 log = "0.4"
-clap = { version = "4.0", features = ["derive"] } # Added for CLI later
+env_logger = "0.10"
+clap = { version = "4.0", features = ["derive"] }
+# Service Dependencies
+actix-web = "4.4"
+actix-cors = "0.6"
 
 [dev-dependencies]
 tempfile = "3.3"
+
+# Define the library explicitly
+[lib]
+name = "sbs"
+path = "src/lib.rs"
+
+# Define the CLI binary
+[[bin]]
+name = "sbs"
+path = "src/main.rs"
+
+# Define the Server binary
+[[bin]]
+name = "sbs-server"
+path = "src/bin/server.rs"

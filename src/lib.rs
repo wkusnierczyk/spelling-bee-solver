@@ -6,5 +6,6 @@ pub mod error;
 pub mod solver;
 
 pub use config::Config;
+pub use dictionary::Dictionary; // New export
 pub use error::SbsError;
 pub use solver::Solver;
