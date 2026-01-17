@@ -1,2 +1,2 @@
-# spelliing-bee-solver
+# spelling-bee-solver
 Spelling Bee Puzlze Solver library and API
