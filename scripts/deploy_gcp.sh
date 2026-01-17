@@ -8,23 +8,19 @@ ZONE="${GCP_ZONE:-europe-west6-a}"
 RELEASE_NAME="sbs-prod"
 NAMESPACE="sbs-namespace"
 
-echo "--- GCP Unified Deployment (Clean Build) ---"
+echo "--- GCP Unified Deployment (Auto-Fix Wasm) ---"
 echo "Target: $PROJECT_ID | Cluster: $CLUSTER_NAME | Arch: linux/amd64"
 
-# 1. Config Context
 gcloud container clusters get-credentials "$CLUSTER_NAME" --zone "$ZONE" --project "$PROJECT_ID"
 
-# 2. Build & Push BACKEND
-echo "[Backend] Building..."
+echo "[Backend] Building & Pushing..."
 docker build --platform linux/amd64 -t "sbs-solver:latest" .
 docker tag "sbs-solver:latest" "gcr.io/$PROJECT_ID/sbs-solver:latest"
-echo "[Backend] Pushing..."
 docker push "gcr.io/$PROJECT_ID/sbs-solver:latest"
 
-# 3. Build & Push FRONTEND (Fresh Build)
-echo "[Frontend] 1. Building Locally (Fresh Production Build)..."
+echo "[Frontend] 1. Building Locally..."
 cd sbs-gui
-# We use 'jsBrowserDistribution' (Production)
+# Running jsBrowserDistribution will now trigger our custom 'copyWasmToDist' task
 ./gradlew clean :composeApp:jsBrowserDistribution --no-daemon -Dorg.gradle.jvmargs="-Xmx2g"
 
 echo "[Frontend] 2. Packaging Cloud Image..."
@@ -35,7 +31,6 @@ echo "[Frontend] 3. Pushing..."
 docker push "gcr.io/$PROJECT_ID/sbs-gui:latest"
 cd ..
 
-# 4. Deploy Helm Chart
 echo "[Helm] Deploying Stack..."
 helm upgrade --install "$RELEASE_NAME" ./charts/sbs-server \
   --namespace "$NAMESPACE" \

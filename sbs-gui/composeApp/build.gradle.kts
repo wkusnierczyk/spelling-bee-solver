@@ -1,4 +1,5 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpack
 
 plugins {
     kotlin("multiplatform")
@@ -14,10 +15,7 @@ kotlin {
         browser {
             commonWebpackConfig {
                 outputFileName = "sbs-gui.js"
-                // VITAL: This triggers the plugin to scan and copy dependency assets (like skiko.wasm)
-                cssSupport {
-                    enabled.set(true)
-                }
+                // REVERTED: cssSupport removed to fix build failure
             }
         }
         binaries.executable()
@@ -61,4 +59,36 @@ compose.desktop {
             packageVersion = "1.0.0"
         }
     }
+}
+
+// --- FORCE COPY TASK ---
+// This task runs after the build. It hunts down skiko.wasm in the build cache
+// and copies it to the distribution folder so Docker can find it.
+tasks.register("copyWasmToDist") {
+    dependsOn("jsBrowserDistribution")
+    doLast {
+        val distDir = file("build/dist/js/productionExecutable")
+        // We look inside the npm extraction folder for skiko
+        val npmDir = file("build/js/packages/sbs-gui/node_modules")
+        
+        // Find skiko.wasm recursively
+        val wasmFiles = fileTree(npmDir).matching { include("**/skiko.wasm") }
+        
+        if (wasmFiles.isEmpty) {
+            println("WARNING: Could not find skiko.wasm in $npmDir")
+        } else {
+            wasmFiles.forEach { file ->
+                println("Copying WASM: ${file.absolutePath} -> $distDir")
+                copy {
+                    from(file)
+                    into(distDir)
+                }
+            }
+        }
+    }
+}
+
+// Make sure the copy runs when we ask for the distribution
+tasks.named("jsBrowserDistribution") {
+    finalizedBy("copyWasmToDist")
 }
