@@ -8,29 +8,27 @@ ZONE="${GCP_ZONE:-europe-west6-a}"
 RELEASE_NAME="sbs-prod"
 NAMESPACE="sbs-namespace"
 
-echo "--- GCP Unified Deployment (Auto-Fix Wasm) ---"
-echo "Target: $PROJECT_ID | Cluster: $CLUSTER_NAME | Arch: linux/amd64"
+echo "--- GCP Unified Deployment (React Edition) ---"
+echo "Target: $PROJECT_ID | Cluster: $CLUSTER_NAME"
 
 gcloud container clusters get-credentials "$CLUSTER_NAME" --zone "$ZONE" --project "$PROJECT_ID"
 
+# 1. Backend (Rust)
 echo "[Backend] Building & Pushing..."
 docker build --platform linux/amd64 -t "sbs-solver:latest" .
 docker tag "sbs-solver:latest" "gcr.io/$PROJECT_ID/sbs-solver:latest"
 docker push "gcr.io/$PROJECT_ID/sbs-solver:latest"
 
-echo "[Frontend] 1. Building Locally..."
+# 2. Frontend (React)
+echo "[Frontend] Building & Pushing..."
 cd sbs-gui
-# Running jsBrowserDistribution will now trigger our custom 'copyWasmToDist' task
-./gradlew clean :composeApp:jsBrowserDistribution --no-daemon -Dorg.gradle.jvmargs="-Xmx2g"
-
-echo "[Frontend] 2. Packaging Cloud Image..."
-docker build --platform linux/amd64 -f Dockerfile.cloud -t "sbs-gui:latest" .
+# We let Docker do the 'npm run build' inside the container
+docker build --platform linux/amd64 -t "sbs-gui:latest" .
 docker tag "sbs-gui:latest" "gcr.io/$PROJECT_ID/sbs-gui:latest"
-
-echo "[Frontend] 3. Pushing..."
 docker push "gcr.io/$PROJECT_ID/sbs-gui:latest"
 cd ..
 
+# 3. Helm
 echo "[Helm] Deploying Stack..."
 helm upgrade --install "$RELEASE_NAME" ./charts/sbs-server \
   --namespace "$NAMESPACE" \
