@@ -1,10 +1,10 @@
 //! The algorithmic core: Trie-based solver.
 
-use std::collections::{HashSet, HashMap};
-use std::fs::File;
-use std::io::{BufRead, BufReader};
 use crate::config::Config;
 use crate::error::SbsError;
+use std::collections::{HashMap, HashSet};
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 
 /// Represents a node in the Trie.
 #[derive(Default, Debug)]
@@ -49,11 +49,12 @@ impl Solver {
     /// Init: Loads the dictionary specified in config into the Trie
     pub fn load_dictionary(&mut self) -> Result<(), SbsError> {
         let path = &self.config.dictionary;
-        
+
         if !path.exists() {
-            return Err(SbsError::DictionaryError(
-                format!("Dictionary file not found at {:?}. Did you run 'make setup'?", path)
-            ));
+            return Err(SbsError::DictionaryError(format!(
+                "Dictionary file not found at {:?}. Did you run 'make setup'?",
+                path
+            )));
         }
 
         let file = File::open(path)?;
@@ -79,20 +80,28 @@ impl Solver {
     }
 
     pub fn solve(&self) -> Result<HashSet<String>, SbsError> {
-        let letters_str = self.config.letters.as_ref()
+        let letters_str = self
+            .config
+            .letters
+            .as_ref()
             .ok_or(SbsError::ConfigError("No letters provided".to_string()))?
             .to_lowercase();
-        
-        let required_str = self.config.present.as_ref()
-            .ok_or(SbsError::ConfigError("No required letter provided".to_string()))?
+
+        let required_str = self
+            .config
+            .present
+            .as_ref()
+            .ok_or(SbsError::ConfigError(
+                "No required letter provided".to_string(),
+            ))?
             .to_lowercase();
 
         let min_len = self.config.minimal_word_length.unwrap_or(4);
         let max_len = self.config.maximal_word_length.unwrap_or(usize::MAX);
-        
+
         let allowed_chars: HashSet<char> = letters_str.chars().collect();
         let required_chars: HashSet<char> = required_str.chars().collect();
-        
+
         let mut results = HashSet::new();
 
         // Create context to pass down
@@ -111,11 +120,7 @@ impl Solver {
         Ok(results)
     }
 
-    fn find_words(
-        node: &TrieNode, 
-        current_word: String, 
-        ctx: &mut SearchContext
-    ) {
+    fn find_words(node: &TrieNode, current_word: String, ctx: &mut SearchContext) {
         if current_word.len() > ctx.max_len {
             return;
         }
@@ -151,25 +156,23 @@ mod tests {
 
     #[test]
     fn test_solver_basic() {
-        let mut config = Config::new()
-            .with_letters("abcdefg")
-            .with_present("a");
-        // Override dictionary path to avoid IO in unit test, 
+        let mut config = Config::new().with_letters("abcdefg").with_present("a");
+        // Override dictionary path to avoid IO in unit test,
         // strictly speaking load_dictionary won't be called here.
-        
+
         let mut solver = Solver::new(config);
-        
+
         // Inject mock dictionary
         solver.load_words_slice(&[
-            "bad",      // too short
-            "fade",     // valid
-            "faced",    // valid
-            "zzzz",     // invalid letters
-            "bed",      // valid length, but 'e' might not be in letters if we change config
+            "bad",   // too short
+            "fade",  // valid
+            "faced", // valid
+            "zzzz",  // invalid letters
+            "bed",   // valid length, but 'e' might not be in letters if we change config
         ]);
 
         let results = solver.solve().expect("Solver failed");
-        
+
         assert!(results.contains("fade"));
         assert!(results.contains("faced"));
         assert!(!results.contains("bad")); // length < 4
@@ -178,13 +181,11 @@ mod tests {
 
     #[test]
     fn test_missing_required_letter() {
-        let config = Config::new()
-            .with_letters("abcdefg")
-            .with_present("z"); // z is required but not in list (impossible, but logic should handle)
-            
+        let config = Config::new().with_letters("abcdefg").with_present("z"); // z is required but not in list (impossible, but logic should handle)
+
         let mut solver = Solver::new(config);
-        solver.load_words_slice(&["faced"]); 
-        
+        solver.load_words_slice(&["faced"]);
+
         let results = solver.solve().expect("Solver failed");
         assert!(results.is_empty());
     }

@@ -1,7 +1,7 @@
 //! CLI entry point for Spelling Bee Solver.
 
 use clap::Parser;
-use sbs::{Config, Solver, SbsError};
+use sbs::{Config, SbsError, Solver};
 use std::path::PathBuf;
 use std::process;
 
@@ -83,7 +83,7 @@ fn main() {
 
     // 4. Initialize Solver
     let mut solver = Solver::new(config);
-    
+
     // 5. Load Dictionary
     if let Err(e) = solver.load_dictionary() {
         eprintln!("Error loading dictionary: {}", e);
@@ -97,7 +97,7 @@ fn main() {
             // Sort for consistent output
             let mut sorted_words: Vec<_> = words.into_iter().collect();
             sorted_words.sort();
-            
+
             for word in sorted_words {
                 println!("{}", word);
             }
