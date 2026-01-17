@@ -1,0 +1,25 @@
+server {
+    listen       80;
+    listen  [::]:80;
+    server_name  localhost;
+    
+    # Ensure correct MIME types (Critical for WebAssembly/JS)
+    include /etc/nginx/mime.types;
+    types {
+        application/wasm wasm;
+    }
+
+    # Serve the Static GUI
+    location / {
+        root   /usr/share/nginx/html;
+        index  index.html index.htm;
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Proxy API calls to the internal backend
+    location /solve {
+        proxy_pass ${API_URL}/solve;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
