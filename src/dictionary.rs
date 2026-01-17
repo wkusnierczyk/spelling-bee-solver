@@ -4,6 +4,8 @@ use crate::config::DictionaryConfig;
 use crate::error::SbsError;
 
 pub struct DictionaryClient {
+    // Suppress warning until we implement the API logic
+    #[allow(dead_code)]
     config: DictionaryConfig,
 }
 
