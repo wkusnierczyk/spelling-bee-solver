@@ -2,9 +2,9 @@
 
 pub mod config;
 pub mod dictionary;
-pub mod solver;
 pub mod error;
+pub mod solver;
 
 pub use config::Config;
-pub use solver::Solver;
 pub use error::SbsError;
+pub use solver::Solver;

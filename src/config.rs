@@ -1,9 +1,9 @@
 //! Configuration management.
 
-use serde::{Deserialize, Serialize};
 use crate::error::SbsError;
-use std::path::{Path, PathBuf};
+use serde::{Deserialize, Serialize};
 use std::fs;
+use std::path::{Path, PathBuf};
 
 const DEFAULT_MIN_LENGTH: usize = 4;
 const DEFAULT_SIZE: usize = 7;
@@ -27,11 +27,11 @@ pub struct Config {
     pub maximal_word_length: Option<usize>,
     pub output: Option<String>,
     pub repeats: Option<usize>,
-    
+
     // Path to the seed dictionary for generation
     #[serde(default = "default_dict_path")]
     pub dictionary: PathBuf,
-    
+
     // External APIs for validation
     pub external_dictionaries: Option<Vec<DictionaryConfig>>,
 }

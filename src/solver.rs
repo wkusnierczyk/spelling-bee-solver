@@ -1,10 +1,10 @@
 //! The algorithmic core: Trie-based solver.
 
-use std::collections::{HashSet, HashMap};
-use std::fs::File;
-use std::io::{BufRead, BufReader};
 use crate::config::Config;
 use crate::error::SbsError;
+use std::collections::{HashMap, HashSet};
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 
 /// Represents a node in the Trie.
 #[derive(Default, Debug)]
@@ -39,11 +39,12 @@ impl Solver {
     /// Init: Loads the dictionary specified in config into the Trie
     pub fn load_dictionary(&mut self) -> Result<(), SbsError> {
         let path = &self.config.dictionary;
-        
+
         if !path.exists() {
-            return Err(SbsError::DictionaryError(
-                format!("Dictionary file not found at {:?}. Did you run 'make setup'?", path)
-            ));
+            return Err(SbsError::DictionaryError(format!(
+                "Dictionary file not found at {:?}. Did you run 'make setup'?",
+                path
+            )));
         }
 
         let file = File::open(path)?;
@@ -61,37 +62,53 @@ impl Solver {
     }
 
     pub fn solve(&self) -> Result<HashSet<String>, SbsError> {
-        let letters_str = self.config.letters.as_ref()
+        let letters_str = self
+            .config
+            .letters
+            .as_ref()
             .ok_or(SbsError::ConfigError("No letters provided".to_string()))?
             .to_lowercase();
-        
-        let required_str = self.config.present.as_ref()
-            .ok_or(SbsError::ConfigError("No required letter provided".to_string()))?
+
+        let required_str = self
+            .config
+            .present
+            .as_ref()
+            .ok_or(SbsError::ConfigError(
+                "No required letter provided".to_string(),
+            ))?
             .to_lowercase();
 
         let min_len = self.config.minimal_word_length.unwrap_or(4);
         let max_len = self.config.maximal_word_length.unwrap_or(usize::MAX);
-        
+
         let allowed_chars: HashSet<char> = letters_str.chars().collect();
         let required_chars: HashSet<char> = required_str.chars().collect();
-        
+
         let mut results = HashSet::new();
 
         // Start DFS from root
-        self.find_words(&self.trie, String::new(), &allowed_chars, &required_chars, min_len, max_len, &mut results);
+        self.find_words(
+            &self.trie,
+            String::new(),
+            &allowed_chars,
+            &required_chars,
+            min_len,
+            max_len,
+            &mut results,
+        );
 
         Ok(results)
     }
 
     fn find_words(
-        &self, 
-        node: &TrieNode, 
-        current_word: String, 
-        allowed: &HashSet<char>, 
+        &self,
+        node: &TrieNode,
+        current_word: String,
+        allowed: &HashSet<char>,
         required: &HashSet<char>,
         min_len: usize,
         max_len: usize,
-        results: &mut HashSet<String>
+        results: &mut HashSet<String>,
     ) {
         if current_word.len() > max_len {
             return;
@@ -119,7 +136,9 @@ impl Solver {
                 // For now assuming infinite repeats allowed per standard rules.
                 let mut next_word = current_word.clone();
                 next_word.push(*ch);
-                self.find_words(next_node, next_word, allowed, required, min_len, max_len, results);
+                self.find_words(
+                    next_node, next_word, allowed, required, min_len, max_len, results,
+                );
             }
         }
     }
