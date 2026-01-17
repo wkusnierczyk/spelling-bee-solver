@@ -8,126 +8,96 @@ SBS is a high-performance system for solving Spelling Bee puzzles. It generates 
 **License:** MIT
 
 ## Architecture
-The system consists of four main components:
-1.  **Core Library (`sbs-lib`)**: Rust-based engine using a Trie data structure for efficient recursive backtracking and pruning.
-2.  **CLI (`sbs`)**: Command-line interface for local execution.
-3.  **Service API (`sbs-server`)**: REST API server (Actix-web) for remote access, deployable via Docker.
+1.  **Core Library (`sbs-lib`)**: Rust-based engine using a Trie data structure.
+2.  **CLI (`sbs`)**: Command-line interface.
+3.  **Service API (`sbs-server`)**: REST API server (Actix-web), deployable via Docker/K8s.
 4.  **GUI (`sbs-gui`)**: Kotlin Multiplatform Desktop client.
-
-### Algorithm
-The solver loads a dictionary into a **Prefix Trie**. During the search:
-1.  It iterates through allowed letters to form candidate prefixes.
-2.  It traverses the Trie. If a prefix doesn't exist in the Trie, that branch is pruned immediately (fail-fast).
-3.  Valid words (nodes marked `is_end_of_word`) containing the "center" letter are collected.
 
 ---
 
 ## 1. Rust Backend (CLI & Service)
 
-### Prerequisites
-* Rust (1.75+)
-* Docker (optional, for containerization)
-* Make
-
-### Setup
-Initialize the dictionary (downloads `words_alpha.txt`):
+### Setup & Build
 ```bash
-make setup
-```
-
-### Build
-```bash
-make build      # Debug build
-make release    # Release build
-```
-
-### Testing
-```bash
-make test
+make setup      # Download dictionary
+make build      # Build debug
+make release    # Build release
+make test       # Run tests
 ```
 
 ### Usage: CLI
 ```bash
-# Run directly
 ./target/release/sbs --letters "abcdefg" --present "a"
-
-# Or via Cargo
-cargo run --bin sbs -- --letters "abcdefg" --present "a"
-
-# Save output to file
-./target/release/sbs -l "abcdefg" -p "a" -o results.txt
-
-# About
 ./target/release/sbs --about
 ```
 
-### Usage: Service (REST API)
-Start the server locally:
+### Usage: Local Service
 ```bash
 make run-server
-# Listens on [http://0.0.0.0:8080](http://0.0.0.0:8080)
-```
-
-Test the endpoint:
-```bash
-curl -X POST http://localhost:8080/solve \
-     -H "Content-Type: application/json" \
-     -d '{"letters": "abcdefg", "present": "a"}'
+# API: POST http://localhost:8080/solve
 ```
 
 ---
 
-## 2. Docker Deployment
+## 2. Kubernetes Deployment
 
-The service is containerized using a multi-stage Docker build.
+### Option A: Local (Minikube)
+Ideal for development without cloud costs.
 
-### Build Image
-```bash
-make docker-build
-```
+1.  **Start Minikube**:
+    ```bash
+    minikube start
+    eval $(minikube docker-env)  # Use Minikube's Docker daemon
+    ```
+2.  **Build & Deploy**:
+    ```bash
+    make docker-build
+    ./scripts/deploy_k8s.sh
+    ```
+3.  **Access**:
+    Minikube exposes the internal service via a tunnel:
+    ```bash
+    minikube service sbs-prod -n sbs-namespace --url
+    ```
+    Use the URL provided by this command (e.g., `http://127.0.0.1:52635`) in your browser or curl.
 
-### Run Container
-```bash
-make docker-run
-# The API is now available at http://localhost:8080
-```
+### Option B: Cloud (Google Cloud Platform)
+Automated deployment script included.
 
-### Stop Container
-```bash
-make docker-stop
-```
+1.  **Prerequisites**:
+    * `gcloud` CLI installed and authenticated.
+    * A GKE cluster created.
+2.  **Deploy**:
+    ```bash
+    # Set your project details
+    export GCP_PROJECT_ID="your-project-id"
+    export GCP_CLUSTER_NAME="sbs-cluster"
+    export GCP_ZONE="us-central1-a"
+
+    # Run the deployment script
+    ./scripts/deploy_gcp.sh
+    ```
+3.  **Access**:
+    The script will deploy a LoadBalancer. Get the external IP:
+    ```bash
+    kubectl get svc -n sbs-namespace
+    ```
 
 ---
 
-## 3. GUI Client (Kotlin Multiplatform)
+## 3. GUI Client (Kotlin)
 
 Located in `sbs-gui/`.
 
-### Prerequisites
-* JDK 17+
-* IntelliJ IDEA or Android Studio (recommended)
-
-### Running the Desktop App
-1.  Ensure the Backend Service is running (locally or via Docker).
-2.  Navigate to the GUI directory:
+1.  **Run**:
     ```bash
     cd sbs-gui
-    ```
-3.  Run the application:
-    ```bash
-    # MacOS/Linux
     ./gradlew run
-
-    # Windows
-    gradlew.bat run
     ```
-    *(Note: If the wrapper script `gradlew` is not executable, run `chmod +x gradlew` first).*
+    *(If connecting to Minikube, you may need to update the URL in `App.kt` to match the `minikube service` URL)*.
 
-### Configuration
-The GUI currently defaults to connecting to `http://localhost:8080`.
+---
 
 ## CI/CD
-A GitHub Actions workflow (`.github/workflows/ci.yml`) is provided to:
-1.  Lint and Test the Rust code.
-2.  Build the Docker image on push to `main`.
+* GitHub Actions (`.github/workflows/ci.yml`) validates Rust code and builds Docker images on push.
 
