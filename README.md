@@ -1,3 +1,4 @@
+
 # Spelling Bee Solver (SBS)
 
 **Developer:** [Waclaw Kusnierczyk](mailto:waclaw.kusnierczyk@gmail.com)  
@@ -166,8 +167,8 @@ Perform these steps once to create the environment.
     ```bash
     gcloud auth login
     
-    export PROJECT_ID=sbs-solver-prod
-    gcloud projects create $PROJECT_ID --name="SBS Solver"
+    # Correct Project ID
+    export PROJECT_ID=sbs-solver
     gcloud config set project $PROJECT_ID
     ```
 
@@ -193,10 +194,8 @@ Perform these steps once to create the environment.
 Use the automated script to build, push, and deploy.
 
 ```bash
-# 1. Set Environment Variables
-export GCP_PROJECT_ID="sbs-solver-prod"
-export GCP_CLUSTER_NAME="sbs-cluster"
-export GCP_ZONE="europe-west6-a"
+# 1. Ensure variables match your setup (defaults in script are for sbs-solver/europe-west6-a)
+export GCP_PROJECT_ID="sbs-solver"
 
 # 2. Run Deployment Script
 ./scripts/deploy_gcp.sh

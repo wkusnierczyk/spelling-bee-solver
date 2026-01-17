@@ -5,38 +5,33 @@
 set -e
 
 # --- Configuration ---
-# You can override these via environment variables
-PROJECT_ID="${GCP_PROJECT_ID:-sbs-solver-prod}"
+# UPDATED: Default Project ID is now 'sbs-solver'
+PROJECT_ID="${GCP_PROJECT_ID:-sbs-solver}"
 CLUSTER_NAME="${GCP_CLUSTER_NAME:-sbs-cluster}"
-ZONE="${GCP_ZONE:-us-central1-a}"
+# UPDATED: Default Zone is Zurich
+ZONE="${GCP_ZONE:-europe-west6-a}"
+
 IMAGE_NAME="sbs-solver"
 RELEASE_NAME="sbs-prod"
 NAMESPACE="sbs-namespace"
 
-echo "--- GCP Deployment for $PROJECT_ID ---"
+echo "--- GCP Deployment for $PROJECT_ID ($ZONE) ---"
 
-# 1. Prerequisites Check
 if ! command -v gcloud &> /dev/null; then echo "Error: gcloud CLI not found."; exit 1; fi
 if ! command -v helm &> /dev/null; then echo "Error: helm not found."; exit 1; fi
 
-# 2. Authentication & Context
 echo "[1/5] Configuring kubectl context..."
 gcloud container clusters get-credentials "$CLUSTER_NAME" --zone "$ZONE" --project "$PROJECT_ID"
 
-# 3. Build & Tag Image
 echo "[2/5] Building and Tagging Docker Image..."
-# We must use the standard local docker daemon here, not minikube's
+# Use local docker daemon
 docker build -t "$IMAGE_NAME:latest" .
 docker tag "$IMAGE_NAME:latest" "gcr.io/$PROJECT_ID/$IMAGE_NAME:latest"
 
-# 4. Push to GCR
 echo "[3/5] Pushing to Google Container Registry..."
 docker push "gcr.io/$PROJECT_ID/$IMAGE_NAME:latest"
 
-# 5. Deploy with Helm
 echo "[4/5] Deploying to GKE..."
-# We override the image repository to point to GCR
-# We set service.type=LoadBalancer to get a public Static IP
 helm upgrade --install "$RELEASE_NAME" ./charts/sbs-server \
   --namespace "$NAMESPACE" \
   --create-namespace \
