@@ -1,9 +1,9 @@
 //! The algorithmic core: Trie-based solver.
 
+use std::collections::{HashSet, HashMap};
 use crate::config::Config;
 use crate::dictionary::{Dictionary, TrieNode};
 use crate::error::SbsError;
-use std::collections::{HashMap, HashSet};
 
 pub struct Solver {
     config: Config,
@@ -15,7 +15,7 @@ struct SearchContext<'a> {
     required: &'a HashSet<char>,
     min_len: usize,
     max_len: usize,
-    max_repeats: Option<usize>, // New field
+    max_repeats: Option<usize>,
     results: &'a mut HashSet<String>,
 }
 
@@ -25,29 +25,21 @@ impl Solver {
     }
 
     pub fn solve(&self, dictionary: &Dictionary) -> Result<HashSet<String>, SbsError> {
-        let letters_str = self
-            .config
-            .letters
-            .as_ref()
+        let letters_str = self.config.letters.as_ref()
             .ok_or(SbsError::ConfigError("No letters provided".to_string()))?
             .to_lowercase();
-
-        let required_str = self
-            .config
-            .present
-            .as_ref()
-            .ok_or(SbsError::ConfigError(
-                "No required letter provided".to_string(),
-            ))?
+        
+        let required_str = self.config.present.as_ref()
+            .ok_or(SbsError::ConfigError("No required letter provided".to_string()))?
             .to_lowercase();
 
         let min_len = self.config.minimal_word_length.unwrap_or(4);
         let max_len = self.config.maximal_word_length.unwrap_or(usize::MAX);
-        let max_repeats = self.config.repeats; // Load from config
-
+        let max_repeats = self.config.repeats;
+        
         let allowed_chars: HashSet<char> = letters_str.chars().collect();
         let required_chars: HashSet<char> = required_str.chars().collect();
-
+        
         let mut results = HashSet::new();
 
         let mut ctx = SearchContext {
@@ -59,7 +51,7 @@ impl Solver {
             results: &mut results,
         };
 
-        // We need to track current character usage counts
+        // Track character usage counts
         let mut char_counts = HashMap::new();
 
         // Start DFS from root
@@ -69,10 +61,10 @@ impl Solver {
     }
 
     fn find_words(
-        node: &TrieNode,
-        current_word: String,
+        node: &TrieNode, 
+        current_word: String, 
         char_counts: &mut HashMap<char, usize>,
-        ctx: &mut SearchContext,
+        ctx: &mut SearchContext
     ) {
         if current_word.len() > ctx.max_len {
             return;
@@ -82,7 +74,7 @@ impl Solver {
         if node.is_end_of_word && current_word.len() >= ctx.min_len {
             let mut all_req_present = true;
             for req in ctx.required {
-                // Optimization: check counts directly instead of string scan
+                // Check counts directly instead of string scan
                 if *char_counts.get(req).unwrap_or(&0) == 0 {
                     all_req_present = false;
                     break;
@@ -124,17 +116,40 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_solver_repeats() {
-        // Allow 'a' only once. Dict has "aa" (invalid) and "ab" (valid)
-        let mut config = Config::new().with_letters("ab").with_present("a");
-        config.repeats = Some(1); // Constraint: Max 1 occurrence per char
+    fn test_solver_basic() {
+        let config = Config::new()
+            .with_letters("abcdefg")
+            .with_present("a");
+        
+        let solver = Solver::new(config);
+        
+        // Inject mock dictionary
+        let dict = Dictionary::from_words(&[
+            "bad", "fade", "faced", "zzzz", "bed"
+        ]);
 
+        let results = solver.solve(&dict).expect("Solver failed");
+        
+        assert!(results.contains("fade"));
+        assert!(results.contains("faced"));
+        assert!(!results.contains("bad"));
+        assert!(!results.contains("zzzz"));
+    }
+
+    #[test]
+    fn test_solver_repeats() {
+        let mut config = Config::new()
+            .with_letters("ab")
+            .with_present("a");
+        config.repeats = Some(1); 
+        config.minimal_word_length = Some(2); // FIX: Allow short words for this test
+        
         let solver = Solver::new(config);
         let dict = Dictionary::from_words(&["aa", "ab"]);
 
         let results = solver.solve(&dict).expect("Solver failed");
-
-        assert!(results.contains("ab"));
-        assert!(!results.contains("aa")); // Should be excluded by repeats=1
+        
+        assert!(results.contains("ab"), "Result should contain 'ab'");
+        assert!(!results.contains("aa"), "Result should NOT contain 'aa' due to repeat limit");
     }
 }
