@@ -9,6 +9,17 @@ plugins {
 kotlin {
     jvm("desktop")
     
+    // SWITCHED FROM wasmJs TO js(IR) FOR STABILITY
+    js(IR) {
+        moduleName = "sbs-gui"
+        browser {
+            commonWebpackConfig {
+                outputFileName = "sbs-gui.js"
+            }
+        }
+        binaries.executable()
+    }
+    
     sourceSets {
         val commonMain by getting {
             dependencies {
@@ -18,16 +29,23 @@ kotlin {
                 implementation(compose.ui)
                 implementation(compose.components.resources)
                 
-                // Networking
-                implementation("io.ktor:ktor-client-core:2.3.7")
-                implementation("io.ktor:ktor-client-content-negotiation:2.3.7")
-                implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.7")
+                // Ktor 2.3.12 is stable for JS
+                val ktorVersion = "2.3.12"
+                implementation("io.ktor:ktor-client-core:$ktorVersion")
+                implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
+                implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
             }
         }
         val desktopMain by getting {
             dependencies {
                 implementation(compose.desktop.currentOs)
-                implementation("io.ktor:ktor-client-cio:2.3.7") // Desktop engine
+                implementation("io.ktor:ktor-client-cio:2.3.12")
+            }
+        }
+        val jsMain by getting {
+            dependencies {
+                // The JS engine is robust and stable
+                implementation("io.ktor:ktor-client-js:2.3.12")
             }
         }
     }

@@ -1,23 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Release.Name }}
+  name: {{ .Release.Name }}-backend
   labels:
-    app: sbs-server
+    app: sbs-backend
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: sbs-server
+      app: sbs-backend
   template:
     metadata:
       labels:
-        app: sbs-server
+        app: sbs-backend
     spec:
       containers:
-        - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+        - name: backend
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          imagePullPolicy: IfNotPresent
           ports:
             - name: http
               containerPort: 8080
@@ -25,19 +25,13 @@ spec:
           env:
             - name: RUST_LOG
               value: "info"
-          {{- if .Values.probes.enabled }}
           livenessProbe:
             httpGet:
-              path: {{ .Values.probes.path }}
+              path: /health
               port: http
-            initialDelaySeconds: 5
-            periodSeconds: 10
           readinessProbe:
             httpGet:
-              path: {{ .Values.probes.path }}
+              path: /health
               port: http
-            initialDelaySeconds: 2
-            periodSeconds: 5
-          {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

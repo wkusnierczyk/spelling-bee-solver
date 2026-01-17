@@ -1,37 +1,28 @@
-# Default values for sbs-server.
-
+# Default values for sbs-stack.
 replicaCount: 2
 
-image:
-  repository: sbs-solver
-  pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is the chart appVersion.
-  tag: "latest"
+backend:
+  image:
+    repository: sbs-solver
+    tag: "latest"
+  service:
+    type: LoadBalancer
+    port: 80
+    targetPort: 8080
 
-service:
-  type: ClusterIP
-  port: 80
+frontend:
+  image:
+    repository: sbs-gui
+    tag: "latest"
+  service:
+    type: LoadBalancer
+    port: 80
+    targetPort: 80
 
 resources:
-  # Recommended limits for production
   limits:
     cpu: 500m
     memory: 512Mi
   requests:
     cpu: 100m
     memory: 128Mi
-
-# Liveness/Readiness probes using our /health endpoint
-probes:
-  enabled: true
-  path: /health
-
-ingress:
-  enabled: false
-  className: ""
-  annotations: {}
-  hosts:
-    - host: chart-example.local
-      paths:
-        - path: /
-          pathType: ImplementationSpecific
