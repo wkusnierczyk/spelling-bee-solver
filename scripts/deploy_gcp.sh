@@ -38,7 +38,7 @@ gcloud container clusters get-credentials "$CLUSTER_NAME" --zone "$ZONE" --proje
 
 # 2. Backend
 echo "[Backend] Building..."
-docker build --platform linux/amd64 -t "sbs-solver:$TAG" .
+docker build --platform linux/amd64 -t "sbs-solver:$TAG" -f sbs-solver/Dockerfile sbs-solver/
 docker tag "sbs-solver:$TAG" "gcr.io/$PROJECT_ID/sbs-solver:$TAG"
 docker push "gcr.io/$PROJECT_ID/sbs-solver:$TAG"
 
