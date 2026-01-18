@@ -51,4 +51,4 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Build Docker image
-      run: docker build -t sbs-solver:latest -f sbs-solver/Dockerfile sbs-solver/
+      run: docker build -t sbs-solver:latest sbs-solver/
