@@ -12,6 +12,7 @@ SBS_BACKEND_NAME ?= sbs-backend
 SBS_FRONTEND_NAME ?= sbs-frontend
 
 # Data Configuration
+DICT_URL = https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt
 SBS_DICT ?= $(SBS_BACKEND_DIR)/data/dictionary.txt
 
 # PID files for background process management
@@ -31,6 +32,16 @@ endef
 
 help: ## Show help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+
+
+# --- Data Management ---
+
+setup-dictionary: ## Force download of the dictionary (overwrites if exists)
+	$(call info, "Downloading fresh dictionary to $(SBS_DICT)...")
+	@mkdir -p $(dir $(SBS_DICT))
+	@curl -L -o $(SBS_DICT) $(DICT_URL) || (rm -f $(SBS_DICT) && exit 1)
+	$(call info, "Dictionary downloaded successfully.")
 
 
 # --- Hygiene & Testing ---
@@ -178,6 +189,35 @@ stop-frontend-container:
 remove-frontend-container: stop-frontend-container ## Stop and then remove the frontend test container
 	$(call info, "Cleaning up container $(SBS_FRONTEND_NAME)...")
 	@docker rm $(SBS_FRONTEND_NAME) >/dev/null 2>&1 || true
+
+
+# --- High Level Orchestration ---
+
+start-docker-stack: setup-dictionary build-backend-image build-frontend-image start-backend-container start-frontend-container
+	@sleep 2
+	@# @make test-frontend-container
+	$(call info, "Stack running!")
+
+stop-docker-stack: stop-frontend-container stop-backend-container
+	$(call info, "Stack stopped.")
+
+remove-docker-stack: remove-frontend-container remove-backend-container
+	$(call info, "Stack removed.")
+
+
+# --- Docker Compose ---
+
+docker-compose-up: setup-dictionary 
+	$(call info, "Starting stack with Docker Compose...")
+	@docker compose up -d --build
+	$(call info, "Stack is running.")
+	$(call info, "Frontend: http://localhost:5173")
+	$(call info, "Backend:  http://localhost:8080")
+
+docker-compose-down:
+	$(call info, "Stopping Docker Compose stack...")
+	@docker compose down
+
 
 
 

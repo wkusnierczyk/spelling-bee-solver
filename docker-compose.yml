@@ -1,0 +1,32 @@
+services:
+  sbs-backend:
+    container_name: sbs-backend
+    build:
+      context: ./sbs-backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./sbs-backend/data:/app/data
+    environment:
+      - SBS_DICT=/app/data/dictionary.txt
+      - RUST_LOG=info
+    networks:
+      - sbs-net
+
+  sbs-frontend:
+    container_name: sbs-frontend
+    build:
+      context: ./sbs-frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:80"
+    depends_on:
+      - sbs-backend
+    restart: on-failure
+    networks:
+      - sbs-net
+
+networks:
+  sbs-net:
+    driver: bridge

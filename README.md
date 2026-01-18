@@ -139,19 +139,57 @@ make stop-local
 
 ### Local containerised deployment
 
-Build and use component images.
+Build and use backend image.
 
 ```bash
-# Build, deploy
+# Build, deploy backend
 make build-backend-container
 make start-backend-container
 
-# Test
+# Test backend
 make test-backend-container
 
-# Stop, clean up
+# Stop, clean up backend
 make stop-backend-container
 make remove-backend-container
+```
+
+Build and use frontend image.
+
+```bash
+# Build, deploy frontend
+make build-frontend-container
+make start-frontend-container
+
+# Test frontend (requires a running backend)
+make test-frontend-container
+
+# Stop, clean up frontend
+make stop-frontend-container
+make remove-frontend-container
+```
+
+Build and use containerised components in one go.
+
+```bash
+# Build and start all containers
+make start-docker-stack
+
+# Stop all containers
+make stop-docker-stack
+
+# Remove all containers
+make remove-docker-stack
+```
+
+Deploy the stack using Docker Compose
+
+```bash
+# Start the whole stack
+make docker-compose-up
+
+# Stop the whole stack
+make docker-compose-down
 ```
 
 ## Development
