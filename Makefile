@@ -133,7 +133,7 @@ build-backend-image:
 		-t $(SBS_BACKEND_NAME):$(DOCKER_TAG) \
 		-f $(SBS_BACKEND_DIR)/Dockerfile $(SBS_BACKEND_DIR)
 
-start-backend-container:
+start-backend-container: remove-backend-container
 	$(call info, "Starting backend container...")
 	docker run -d --name $(SBS_BACKEND_NAME) \
 		-p 8080:8080 \
@@ -197,6 +197,11 @@ start-docker-stack: setup-dictionary build-backend-image build-frontend-image st
 	@sleep 2
 	@# @make test-frontend-container
 	$(call info, "Stack running!")
+
+test-docker-stack: setup-dictionary build-backend-image build-frontend-image start-backend-container start-frontend-container
+	@sleep 5  # Increased sleep slightly for CI environments
+	@make test-frontend-container
+	$(call info, "Full Docker Stack is verified and running!")
 
 stop-docker-stack: stop-frontend-container stop-backend-container
 	$(call info, "Stack stopped.")

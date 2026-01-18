@@ -1,0 +1,46 @@
+name: Docker Integration
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  docker-smoke-test:
+    name: Build & Smoke Test Stack
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 1. Setup Data (Uses your existing Makefile logic)
+      - name: Setup Dictionary
+        run: make setup-dictionary
+
+      # 2. Build & Start Stack (Uses the fixed targets)
+      # This ensures the containers are built and mapped to localhost ports
+      - name: Start Docker Stack
+        run: make start-docker-stack
+
+      # 3. Verification (Explicit step for clarity, though test-docker-stack includes it)
+      - name: Verify Backend Health
+        run: curl --fail http://localhost:8080/health || exit 1
+
+      - name: Verify Frontend Proxy
+        run: make test-frontend-container
+
+      # 4. Dump Logs on Failure (Crucial for debugging CI)
+      - name: Dump Docker Logs
+        if: failure()
+        run: |
+          echo "=== Backend Logs ==="
+          docker logs sbs-backend
+          echo "=== Frontend Logs ==="
+          docker logs sbs-frontend
+
+      # 5. Cleanup
+      - name: Tear Down
+        if: always()
+        run: make remove-docker-stack
