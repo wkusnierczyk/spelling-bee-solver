@@ -1,0 +1,8 @@
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: sbs-managed-cert
+  namespace: sbs-namespace
+spec:
+  domains:
+    - sbsolver.ch

@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sbs-ingress
+  namespace: sbs-namespace
+  annotations:
+    kubernetes.io/ingress.global-static-ip-name: sbs-global-ip
+    networking.gke.io/managed-certificates: sbs-managed-cert
+    kubernetes.io/ingress.class: "gce"
+    networking.gke.io/v1beta1.FrontendConfig: sbs-frontend-config
+spec:
+  rules:
+    - host: sbsolver.ch
+      http:
+        paths:
+          - path: /solve
+            pathType: Prefix
+            backend:
+              service:
+                name: sbs-prod-backend
+                port:
+                  number: 80
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sbs-prod-frontend
+                port:
+                  number: 80
