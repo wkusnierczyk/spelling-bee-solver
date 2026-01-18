@@ -239,6 +239,31 @@ Makefile targets:
   make status
   ```
 
+- Run backend unit and integration tests; local only.
+  ```bash
+  make test
+  ```
+
+- Run clippy linter on backend; local only.
+  ```bash
+  make lint
+  ```
+
+- Format backend code using rustfmt; local only.
+  ```bash
+  make format
+  ```
+
+- Build Rust backend locally; local only.
+  ```bash
+  make build-backend
+  ```
+
+- Deploy to local Minikube using local images; changes local cluster state.
+  ```bash
+  make deploy-minikube
+  ```
+
 - Compile the Rust backend locally; produce local build artifacts only.
   ```bash
   make build-backend
