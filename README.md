@@ -74,7 +74,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 Build the CLI binary:
 
 ```bash
-(cd sbs-solver && cargo build --bin sbs)
+make build-cli
 ```
 
 Run it from the repo root (debug build):
@@ -86,7 +86,7 @@ Run it from the repo root (debug build):
 Install globally:
 
 ```bash
-cargo install --path sbs-solver
+make install-cli
 ```
 
 Optional flags:
@@ -116,99 +116,26 @@ sbs --config /path/to/config.json --present a
 
 ### Local native deployment
 
-Used for the fastest iteration loop.
+Build and start the backend and the frontend.
 
 ```bash
 # Backend:
-make build-backend && ./sbs-solver/target/debug/sbs-server
+make build-backend
+make run-backend
 
 # Frontend:
-cd sbs-gui && npm install && npm run dev
+make build-frontend
+make run-frontend
 ```
 
-
-### Local kubernetes (minikube) deployment
-
-Used to test the full containerized stack locally.
-
-Setup the environment:
+Both components of the service can also be started in one go.
 
 ```bash
-minikube start --driver=docker
-eval $(minikube docker-env)  
+make start-local
+
+# stop afterwards
+make stop-local
 ```
-
-Build and deploy:
-
-```bash
-cd {project root directory}
-
-docker build -t sbs-solver:latest -f sbs-solver/Dockerfile sbs-solver/
-docker build -t sbs-gui:v2-react sbs-gui/
-
-make deploy-minikube
-```
-
-Access the service:
-
-```bash
-minikube service sbs-prod-frontend -n sbs-namespace
-```
-**Note**  
-If the page fails to load, run `minikube tunnel` in a separate terminal.
-
-
-### Cloud deployment (GCP)
-
-Requires `GCP_PROJECT_ID`, `GCP_CLUSTER_NAME`, and `GCP_ZONE` environment variables to be set to appropriate values.
-Check your GCP project for details.
-
-Initial infrastructure setup:
-
-```bash
-# Provision global IP, SSL certificates, and ingress
-make install-infra 
-```
-
-Deploying updates:
-
-```bash
-# Rebuild images, push to GCR, and update Helm
-make deploy         
-```
-
----
-
-### Cloud cost management
-
-To avoid excessive charges when the cloud service is not in use:
-
-**Option A**  
-Scale to zero (stops _compute_ costs).
-The Load Balancer remains active (~$18/mo), but CPU/RAM incur no costs.
-
-```bash
-# STOP
-kubectl scale deployment sbs-prod-backend --replicas=0 -n sbs-namespace
-kubectl scale deployment sbs-prod-frontend --replicas=0 -n sbs-namespace
-
-# START (Back Up)
-kubectl scale deployment sbs-prod-backend --replicas=1 -n sbs-namespace
-kubectl scale deployment sbs-prod-frontend --replicas=1 -n sbs-namespace
-```
-
-**Option B**  
-Delete ingress (stops _load balancer_ costs).
-Use for long-term breaks.
-
-```bash
-# STOP
-kubectl delete -f infra/sbs-ingress.yaml
-
-# START
-kubectl apply -f infra/sbs-ingress.yaml
-```
-
 
 ## Development
 
@@ -217,26 +144,6 @@ Makefile targets:
 - Print available Makefile targets and a short description; no state changes.
   ```bash
   make help
-  ```
-
-- Provision GKE infrastructure such as ingress and SSL; create/update cloud resources.
-  ```bash
-  make install-infra
-  ```
-
-- Build and pushe images to GCP and update the running deployment; change live cloud state.
-  ```bash
-  make deploy
-  ```
-
-- Start backend and frontend locally via the launcher; run services on local machine only.
-  ```bash
-  make run-local
-  ```
-
-- Query current ingress/pod/cert status in the cluster; read-only.
-  ```bash
-  make status
   ```
 
 - Run backend unit and integration tests; local only.
@@ -252,26 +159,6 @@ Makefile targets:
 - Format backend code using rustfmt; local only.
   ```bash
   make format
-  ```
-
-- Build Rust backend locally; local only.
-  ```bash
-  make build-backend
-  ```
-
-- Deploy to local Minikube using local images; changes local cluster state.
-  ```bash
-  make deploy-minikube
-  ```
-
-- Compile the Rust backend locally; produce local build artifacts only.
-  ```bash
-  make build-backend
-  ```
-
-- Deploy to local Minikube using local images; affects only your local cluster.
-  ```bash
-  make deploy-minikube
   ```
 
 ## About
