@@ -1,0 +1,45 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: Test & Lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./sbs-solver
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+    - name: Cache Cargo registry
+      uses: actions/cache@v3
+      with:
+        path: ~/.cargo/registry
+        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('sbs-solver/Cargo.lock') }}
+    - name: Cache Cargo build
+      uses: actions/cache@v3
+      with:
+        path: sbs-solver/target
+        key: ${{ runner.os }}-cargo-build-${{ hashFiles('sbs-solver/Cargo.lock') }}
+    
+    - name: Setup Data
+      run: ../scripts/setup_dictionary.sh
+
+    - name: Build
+      run: cargo build --verbose
+    - name: Run tests
+      run: cargo test --verbose
+    - name: Lint
+      run: cargo clippy -- -D warnings
