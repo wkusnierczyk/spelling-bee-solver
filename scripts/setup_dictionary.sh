@@ -2,7 +2,7 @@
 # setup_dictionary.sh
 # Downloads a standard English word list for the solver
 
-DATA_DIR="data"
+DATA_DIR="sbs-backend/data"
 DICT_FILE="$DATA_DIR/dictionary.txt"
 # Using words_alpha.txt (only letters, no numbers/symbols)
 URL="https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt"
