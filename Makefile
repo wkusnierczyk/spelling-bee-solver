@@ -2,12 +2,16 @@
 NAMESPACE = sbs-namespace
 RELEASE_NAME = sbs-prod
 
+# Structure
+SBS_BACKEND_DIR = sbs-backend
+SBS_FRONTEND_DIR = sbs-frontend
+
 # Binary Configuration
 SBS_CLI_NAME ?= sbs
 SBS_SERVER_NAME ?= sbs-server
 
 # Data Configuration
-SBS_DICT ?= sbs-solver/data/dictionary.txt
+SBS_DICT ?= $(SBS_BACKEND_DIR)/data/dictionary.txt
 
 # PID files for background process management
 BACKEND_PID = .backend.pid
@@ -21,29 +25,29 @@ help: ## Show help
 # --- Hygiene & Testing ---
 
 test: ## Run backend unit and integration tests
-	cd sbs-solver && cargo test
+	cd $(SBS_BACKEND_DIR) && cargo test
 
 lint: ## Run clippy linter on backend
-	cd sbs-solver && cargo clippy -- -D warnings
+	cd $(SBS_BACKEND_DIR) && cargo clippy -- -D warnings
 
 format: ## Format backend code using rustfmt
-	cd sbs-solver && cargo fmt
+	cd $(SBS_BACKEND_DIR) && cargo fmt
 
 # --- Backend Management ---
 
 build-cli:
-	cd sbs-solver && cargo build --bin $(SBS_CLI_NAME)
+	cd $(SBS_BACKEND_DIR) && cargo build --bin $(SBS_CLI_NAME)
 
 install-cli:
-	cd sbs-solver && cargo install --path . --bin $(SBS_CLI_NAME) --force
+	cd $(SBS_BACKEND_DIR) && cargo install --path . --bin $(SBS_CLI_NAME) --force
 
 # --- Backend Management ---
 
 build-backend:
-	cd sbs-solver && cargo build --bin $(SBS_SERVER_NAME)
+	cd $(SBS_BACKEND_DIR) && cargo build --bin $(SBS_SERVER_NAME)
 
 install-backend:
-	cd sbs-solver && cargo install --path . --bin $(SBS_SERVER_NAME) --force
+	cd $(SBS_BACKEND_DIR) && cargo install --path . --bin $(SBS_SERVER_NAME) --force
 
 run-backend: ## Run the backend server in the foreground
 	SBS_DICT=$(SBS_DICT) $(SBS_SERVER_NAME)
@@ -51,10 +55,10 @@ run-backend: ## Run the backend server in the foreground
 # --- Frontend Management ---
 
 build-frontend:
-	cd sbs-gui && npm install && npm run build
+	cd $(SBS_FRONTEND_DIR) && npm install && npm run build
 
 run-frontend: ## Run the frontend dev server in the foreground
-	cd sbs-gui && npm run dev
+	cd $(SBS_FRONTEND_DIR) && npm run dev
 
 # --- Local Orchestration ---
 
@@ -62,7 +66,7 @@ start-local: stop-local ## Start Backend and Frontend in background
 	@echo "🚀 Starting Backend Server..."
 	@SBS_DICT=$(SBS_DICT) $(SBS_SERVER_NAME) > backend.log 2>&1 & echo $$! > $(BACKEND_PID)
 	@echo "🚀 Starting Frontend (Vite)..."
-	@cd sbs-gui && npm run dev > ../frontend.log 2>&1 & echo $$! > ../$(FRONTEND_PID)
+	@cd $(SBS_FRONTEND_DIR) && npm run dev > ../frontend.log 2>&1 & echo $$! > ../$(FRONTEND_PID)
 	@sleep 2
 	@echo "\n✅ SERVICES STARTED"
 	@echo "🔗 Frontend URL: http://localhost:5173"
