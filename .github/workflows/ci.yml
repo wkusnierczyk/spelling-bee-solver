@@ -13,6 +13,9 @@ jobs:
   test:
     name: Test & Lint
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./sbs-solver
     steps:
     - uses: actions/checkout@v3
     - name: Set up Rust
@@ -24,16 +27,15 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ~/.cargo/registry
-        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('sbs-solver/Cargo.lock') }}
     - name: Cache Cargo build
       uses: actions/cache@v3
       with:
-        path: target
-        key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
+        path: sbs-solver/target
+        key: ${{ runner.os }}-cargo-build-${{ hashFiles('sbs-solver/Cargo.lock') }}
     
-    # Prerequisite for tests that load dictionary
     - name: Setup Data
-      run: ./scripts/setup_dictionary.sh
+      run: ../scripts/setup_dictionary.sh
 
     - name: Build
       run: cargo build --verbose
@@ -49,4 +51,4 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Build Docker image
-      run: docker build . --file Dockerfile --tag sbs-solver:latest
+      run: docker build -t sbs-solver:latest -f sbs-solver/Dockerfile sbs-solver/
