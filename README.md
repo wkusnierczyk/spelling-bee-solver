@@ -175,6 +175,9 @@ Build and use containerised components in one go.
 # Build and start all containers
 make start-docker-stack
 
+# Test the stack
+make test-docker-stack
+
 # Stop all containers
 make stop-docker-stack
 
