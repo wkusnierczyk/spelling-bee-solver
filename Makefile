@@ -8,7 +8,7 @@ SBS_FRONTEND_DIR = sbs-frontend
 
 # Binary Configuration
 SBS_CLI_NAME ?= sbs
-SBS_SERVER_NAME ?= sbs-server
+SBS_BACKEND_NAME ?= sbs-backend
 
 # Data Configuration
 SBS_DICT ?= $(SBS_BACKEND_DIR)/data/dictionary.txt
@@ -38,19 +38,19 @@ format: ## Format backend code using rustfmt
 build-cli:
 	cd $(SBS_BACKEND_DIR) && cargo build --bin $(SBS_CLI_NAME)
 
-install-cli:
+install-cli: build-cli
 	cd $(SBS_BACKEND_DIR) && cargo install --path . --bin $(SBS_CLI_NAME) --force
 
 # --- Backend Management ---
 
 build-backend:
-	cd $(SBS_BACKEND_DIR) && cargo build --bin $(SBS_SERVER_NAME)
+	cd $(SBS_BACKEND_DIR) && cargo build --bin $(SBS_BACKEND_NAME)
 
-install-backend:
-	cd $(SBS_BACKEND_DIR) && cargo install --path . --bin $(SBS_SERVER_NAME) --force
+install-backend: build-backend
+	cd $(SBS_BACKEND_DIR) && cargo install --path . --bin $(SBS_BACKEND_NAME) --force
 
-run-backend: ## Run the backend server in the foreground
-	SBS_DICT=$(SBS_DICT) $(SBS_SERVER_NAME)
+run-backend: install-backend
+	SBS_DICT=$(SBS_DICT) $(SBS_BACKEND_NAME)
 
 # --- Frontend Management ---
 
@@ -64,7 +64,7 @@ run-frontend: ## Run the frontend dev server in the foreground
 
 start-local: stop-local ## Start Backend and Frontend in background
 	@echo "🚀 Starting Backend Server..."
-	@SBS_DICT=$(SBS_DICT) $(SBS_SERVER_NAME) > backend.log 2>&1 & echo $$! > $(BACKEND_PID)
+	@SBS_DICT=$(SBS_DICT) $(SBS_BACKEND_NAME) > backend.log 2>&1 & echo $$! > $(BACKEND_PID)
 	@echo "🚀 Starting Frontend (Vite)..."
 	@cd $(SBS_FRONTEND_DIR) && npm run dev > ../frontend.log 2>&1 & echo $$! > ../$(FRONTEND_PID)
 	@sleep 2
