@@ -121,11 +121,11 @@ Build and start the backend and the frontend.
 ```bash
 # Backend:
 make build-backend
-make run-backend
+make start-backend
 
 # Frontend:
 make build-frontend
-make run-frontend
+make start-frontend
 ```
 
 Both components of the service can also be started in one go.
@@ -135,6 +135,23 @@ make start-local
 
 # stop afterwards
 make stop-local
+```
+
+### Local containerised deployment
+
+Build and use component images.
+
+```bash
+# Build, deploy
+make build-backend-container
+make start-backend-container
+
+# Test
+make test-backend-container
+
+# Stop, clean up
+make stop-backend-container
+make remove-backend-container
 ```
 
 ## Development
