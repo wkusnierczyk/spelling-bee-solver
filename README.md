@@ -197,7 +197,26 @@ make docker-compose-down
 
 ## Development
 
-Makefile targets:
+When developing locally, run the GitHub test and integration workflows locally to speed up debugging in case of failure, and saving the remote from polluting commits.
+
+Prerequisites:
+
+* [act](https://github.com/nektos/act).
+
+```bash
+# List available workflows
+make ci-list
+
+# Run individual workflows
+make ci-backend
+make ci-docker
+make ci-compose
+
+# Run all workflows
+make ci-all
+```
+
+Other useful make targets:
 
 - Print available Makefile targets and a short description; no state changes.
   ```bash
