@@ -36,7 +36,7 @@ jobs:
 
       # 4. Run the Test Target (Wait -> Port-Forward -> Curl -> Exec)
       - name: Run Integration Tests
-        run: make test-minikube
+        run: make minikube-test
 
       # 5. Debug Logs (Only runs if the test fails)
       - name: Dump Pod Status
