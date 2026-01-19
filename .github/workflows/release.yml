@@ -60,15 +60,15 @@ jobs:
       - name: Inject Version (Single Source of Truth)
         shell: bash
         run: |
-          # Use sed to patch Cargo.toml with the tag version (minus the 'v')
           VERSION="${{ needs.create-draft.outputs.version }}"
           echo "Patching Cargo.toml to version $VERSION"
-          # This works for standard Cargo.toml formatting
-          sed -i.bak "s/^version = \".*\"/version = \"$VERSION\"/" sbs-backend/Cargo.toml
+          
+          # Perl is consistent across Linux and macOS runners
+          perl -pi -e "s/^version = \".*\"/version = \"$VERSION\"/" sbs-backend/Cargo.toml
           
           # Verify
           grep "version =" sbs-backend/Cargo.toml
-
+          
       - name: Build Release
         run: |
           cd sbs-backend
