@@ -1,0 +1,43 @@
+name: Deploy to Cloud
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  deploy-gke:
+    name: Deploy to GKE
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 1. Authenticate to Google Cloud
+      - name: Auth to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Setup GCloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+
+      # 2. Authenticate Docker to GCR
+      - name: Docker Auth
+        run: gcloud auth configure-docker
+
+      # 3. Run the "Safe Deployment" Pipeline
+      - name: Deploy & Promote
+        env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GCP_CLUSTER_NAME: ${{ secrets.GCP_CLUSTER_NAME }}
+          GCP_ZONE: ${{ secrets.GCP_ZONE }}
+        run: |
+          # The Makefile handles everything: Build -> Push -> Candidate -> Test -> Promote
+          make deploy-cloud
+
+      # 4. Final Production Check
+      - name: Verify Production
+        run: make gcp-test-prod
