@@ -3,15 +3,12 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ .Release.Name }}-ingress
-  labels:
-    app: {{ .Release.Name }}
   annotations:
     kubernetes.io/ingress.class: "gce"
-    {{- toYaml .Values.ingress.annotations | nindent 4 }}
+    kubernetes.io/ingress.global-static-ip-name: {{ .Values.ingress.staticIpName }}
 spec:
-  ingressClassName: "gce"
   rules:
-    - host: {{ index .Values.ingress.hosts 0 "host" | quote }}
+    - host: {{ .Values.ingress.host }}
       http:
         paths:
           - path: /

@@ -365,20 +365,28 @@ gcp-push: gcp-build ## Push images to Google Container Registry
 	docker push $(GCP_REGISTRY)/$(SBS_BACKEND_NAME):$(CLOUD_TAG)
 	docker push $(GCP_REGISTRY)/$(SBS_FRONTEND_NAME):$(CLOUD_TAG)
 
-gcp-deploy-candidate: gcp-push ## Deploy Candidate: No Ingress, Use LoadBalancer for testing
-	$(call info, "Deploying Candidate Release (sbs-candidate)...")
-	@# Strategy: We force type=LoadBalancer to get a temporary IP for testing
-	helm upgrade --install sbs-candidate ./charts/gcp \
-		--namespace $(NAMESPACE) \
-		--create-namespace \
-		--set backend.fullnameOverride=sbs-candidate-backend \
-		--set frontend.fullnameOverride=sbs-candidate-frontend \
-		--set backend.image.repository=$(GCP_REGISTRY)/$(SBS_BACKEND_NAME) \
-		--set backend.image.tag=$(CLOUD_TAG) \
-		--set frontend.image.repository=$(GCP_REGISTRY)/$(SBS_FRONTEND_NAME) \
-		--set frontend.image.tag=$(CLOUD_TAG) \
-		--set ingress.enabled=false \
-		--wait
+# gcp-deploy-candidate: gcp-push ## Deploy Candidate: No Ingress, Use LoadBalancer for testing
+# 	$(call info, "Deploying Candidate Release (sbs-candidate)...")
+# 	helm upgrade --install sbs-candidate ./charts/gcp \
+# 		--namespace $(NAMESPACE) \
+# 		--create-namespace \
+# 		--set backend.fullnameOverride=sbs-candidate-backend \
+# 		--set frontend.fullnameOverride=sbs-candidate-frontend \
+# 		--set backend.image.repository=$(GCP_REGISTRY)/$(SBS_BACKEND_NAME) \
+# 		--set backend.image.tag=$(CLOUD_TAG) \
+# 		--set frontend.image.repository=$(GCP_REGISTRY)/$(SBS_FRONTEND_NAME) \
+# 		--set frontend.image.tag=$(CLOUD_TAG) \
+# 		--set ingress.enabled=false \
+# 		--wait
+
+gcp-deploy-candidate: gcp-push
+    @helm upgrade --install sbs-candidate ./charts/gcp \
+        --namespace $(NAMESPACE) \
+        --set ingress.enabled=false \
+        --set frontend.service.type=LoadBalancer \
+        --set backend.image.tag=$(CLOUD_TAG) \
+        --set frontend.image.tag=$(CLOUD_TAG) \
+        --wait
 
 gcp-test-candidate: ## Run Smoke Tests against the Candidate IP
 	$(call info, "Waiting for Candidate Public IP...")
@@ -398,23 +406,33 @@ gcp-test-candidate: ## Run Smoke Tests against the Candidate IP
 	# Retrying curl a few times as LBs can take a moment to warm up
 	for i in {1..5}; do curl -s --fail "http://$$IP" | grep "<title>" && break || sleep 5; done
 
-gcp-promote: ## Promote to Prod: Enable Ingress, Use NodePort (Standard)
-	$(call info, "Promoting to Production (sbs-prod)...")
-	helm upgrade --install $(RELEASE_NAME) ./charts/gcp \
+# gcp-promote: ## Promote to Prod: Enable Ingress, Use NodePort (Standard)
+# 	$(call info, "Promoting to Production (sbs-prod)...")
+# 	helm upgrade --install $(RELEASE_NAME) ./charts/gcp \
+# 		--namespace $(NAMESPACE) \
+# 		--create-namespace \
+# 		--set backend.fullnameOverride=$(SBS_BACKEND_NAME) \
+# 		--set frontend.fullnameOverride=$(SBS_FRONTEND_NAME) \
+# 		--set backend.image.repository=$(GCP_REGISTRY)/$(SBS_BACKEND_NAME) \
+# 		--set backend.image.tag=$(CLOUD_TAG) \
+# 		--set frontend.image.repository=$(GCP_REGISTRY)/$(SBS_FRONTEND_NAME) \
+# 		--set frontend.image.tag=$(CLOUD_TAG) \
+# 		--set ingress.enabled=true \
+# 		--set frontend.service.type=NodePort \
+# 		--wait
+# 	$(call info, "🚀 Production Updated Successfully! Checking Ingress...")
+# 	@kubectl get ingress -n $(NAMESPACE)
+
+gcp-promote:
+	$(call info, "Promoting to Production...")
+	@helm upgrade --install sbs-prod ./charts/gcp \
 		--namespace $(NAMESPACE) \
-		--create-namespace \
-		--set backend.fullnameOverride=$(SBS_BACKEND_NAME) \
-		--set frontend.fullnameOverride=$(SBS_FRONTEND_NAME) \
-		--set backend.image.repository=$(GCP_REGISTRY)/$(SBS_BACKEND_NAME) \
-		--set backend.image.tag=$(CLOUD_TAG) \
-		--set frontend.image.repository=$(GCP_REGISTRY)/$(SBS_FRONTEND_NAME) \
-		--set frontend.image.tag=$(CLOUD_TAG) \
 		--set ingress.enabled=true \
 		--set frontend.service.type=NodePort \
+		--set backend.image.tag=$(CLOUD_TAG) \
+		--set frontend.image.tag=$(CLOUD_TAG) \
 		--wait
-	$(call info, "🚀 Production Updated Successfully! Checking Ingress...")
-	@kubectl get ingress -n $(NAMESPACE)
-
+		
 gcp-cleanup: ## Remove the candidate deployment
 	$(call info, "Removing Candidate Release...")
 	helm uninstall sbs-candidate -n $(NAMESPACE) || true

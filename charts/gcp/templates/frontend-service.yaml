@@ -1,17 +1,18 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Values.frontend.fullnameOverride | default "sbs-frontend" }}
-  labels:
-    app: sbs-frontend
+  # This line now honors the --set frontend.fullnameOverride from your Makefile
+  name: {{ .Values.frontend.fullnameOverride | default (printf "%s-frontend" .Release.Name) }}
   annotations:
-    cloud.google.com/neg: '{"ingress":true}'
+    {{- if .Values.ingress.enabled }}
+    cloud.google.com/neg: '{"ingress": true}'
+    {{- end }}
 spec:
-  type: NodePort
+  type: {{ .Values.frontend.service.type | default "NodePort" }}
   ports:
     - port: 80
       targetPort: 80
       protocol: TCP
       name: http
   selector:
-    app: sbs-frontend
+    app: {{ .Values.frontend.fullnameOverride | default (printf "%s-frontend" .Release.Name) }}
