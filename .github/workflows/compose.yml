@@ -18,6 +18,9 @@ jobs:
       - name: Setup Dictionary
         run: make setup-dictionary
 
+      - name: Start Compose Stack
+        run: make start-compose-stack
+
       - name: Test Docker Compose Stack 
         run: make test-compose-stack
 

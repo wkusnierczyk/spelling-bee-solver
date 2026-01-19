@@ -231,11 +231,22 @@ stop-compose-stack:
 # --- Full Stack Testing ---
 
 fullstack-smoke-test:
-	$(call info, "Running Smoke Tests...")
-	@# Give services a moment to settle (Nginx DNS resolution, etc)
-	@sleep 5 
+	$(call info, "Testing full stack...")
+	$(call info, "Waiting for backend...")
+	@timeout=30; \
+	while ! curl -s --fail http://localhost:8080/health > /dev/null; do \
+		if [ $$timeout -le 0 ]; then \
+			echo "Timed out waiting for Backend to start."; \
+			exit 1; \
+		fi; \
+		echo "   ...waiting for backend ($${timeout}s remaining)"; \
+		sleep 1; \
+		timeout=$$((timeout - 1)); \
+	done
+	$(call info, "Backend is up! Running full checks...")
 	@make test-backend-container
 	@make test-frontend-container
+
 
 
 
