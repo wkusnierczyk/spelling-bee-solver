@@ -27,6 +27,12 @@ define info
 	@printf "\033[36m[DIAG] %s\033[0m\n" $(1) >&2
 endef
 
+# Load environment variables if .env exists
+ifneq (,$(wildcard ./.env))
+    include .env
+    export
+endif
+
 
 .PHONY: help test lint format build-backend install-backend run-backend build-frontend run-frontend build-cli install-cli start-local stop-local status
 
@@ -337,6 +343,71 @@ minikube-stop: ## Stop the Minikube cluster (saves resources)
 minikube-delete: ## Nuke the Minikube cluster (fresh start)
 	$(call info, "Deleting Minikube Cluster...")
 	minikube delete
+
+
+# --- Cloud / GCP Orchestration ---
+
+GCP_REGISTRY = gcr.io/$(GCP_PROJECT_ID)
+CLOUD_TAG ?= $(shell git rev-parse --short HEAD)
+
+gcp-auth: ## Authenticate kubectl with the GKE cluster
+	gcloud container clusters get-credentials $(GCP_CLUSTER_NAME) --zone $(GCP_ZONE) --project $(GCP_PROJECT_ID)
+
+gcp-build: ## Build images for Cloud (Force AMD64 for GKE compatibility)
+	$(call info, "Building Cloud Images (linux/amd64)...")
+	docker build --platform linux/amd64 -t $(GCP_REGISTRY)/$(SBS_BACKEND_NAME):$(CLOUD_TAG) -f $(SBS_BACKEND_DIR)/Dockerfile $(SBS_BACKEND_DIR)
+	docker build --platform linux/amd64 -t $(GCP_REGISTRY)/$(SBS_FRONTEND_NAME):$(CLOUD_TAG) -f $(SBS_FRONTEND_DIR)/Dockerfile $(SBS_FRONTEND_DIR)
+
+gcp-push: gcp-build ## Push images to Google Container Registry
+	$(call info, "Pushing images to GCR...")
+	docker push $(GCP_REGISTRY)/$(SBS_BACKEND_NAME):$(CLOUD_TAG)
+	docker push $(GCP_REGISTRY)/$(SBS_FRONTEND_NAME):$(CLOUD_TAG)
+
+gcp-deploy-candidate: gcp-push ## Deploy a temporary 'candidate' release to test
+	$(call info, "Deploying Candidate Release (sbs-candidate)...")
+	helm upgrade --install sbs-candidate ./charts/sbs-server \
+		--namespace $(NAMESPACE) \
+		--create-namespace \
+		--set backend.image.repository=$(GCP_REGISTRY)/$(SBS_BACKEND_NAME) \
+		--set backend.image.tag=$(CLOUD_TAG) \
+		--set frontend.image.repository=$(GCP_REGISTRY)/$(SBS_FRONTEND_NAME) \
+		--set frontend.image.tag=$(CLOUD_TAG) \
+		--wait
+
+gcp-test-candidate: ## Run Smoke Tests against the Candidate Release
+	$(call info, "Waiting for Candidate IP...")
+	@IP=""; \
+	count=0; \
+	while [ -z "$$IP" ]; do \
+		IP=$$(kubectl get svc -n $(NAMESPACE) sbs-candidate-frontend -o jsonpath='{.status.loadBalancer.ingress[0].ip}'); \
+		if [ -z "$$IP" ]; then \
+			echo "   ...waiting for LoadBalancer IP ($$count/60)"; \
+			sleep 2; \
+			count=$$((count+1)); \
+			if [ $$count -ge 60 ]; then echo "Timeout getting IP"; exit 1; fi; \
+		fi; \
+	done; \
+	echo "Candidate IP: $$IP"; \
+	echo "Running Smoke Test..."; \
+	curl -s --fail "http://$$IP" | grep "<title>" && echo "✅ Candidate is Healthy" || exit 1
+
+gcp-promote: ## Apply the tested images to Production (Rolling Update)
+	$(call info, "Promoting to Production (sbs-prod)...")
+	helm upgrade --install $(RELEASE_NAME) ./charts/sbs-server \
+		--namespace $(NAMESPACE) \
+		--create-namespace \
+		--set backend.image.repository=$(GCP_REGISTRY)/$(SBS_BACKEND_NAME) \
+		--set backend.image.tag=$(CLOUD_TAG) \
+		--set frontend.image.repository=$(GCP_REGISTRY)/$(SBS_FRONTEND_NAME) \
+		--set frontend.image.tag=$(CLOUD_TAG) \
+		--wait
+	$(call info, "🚀 Production Updated Successfully!")
+
+gcp-cleanup: ## Remove the candidate deployment
+	$(call info, "Removing Candidate Release...")
+	helm uninstall sbs-candidate -n $(NAMESPACE) || true
+
+deploy-cloud: gcp-auth gcp-deploy-candidate gcp-test-candidate gcp-promote gcp-cleanup ## Run the full safe deployment pipeline
 
 
 
