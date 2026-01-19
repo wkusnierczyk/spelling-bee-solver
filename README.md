@@ -294,20 +294,18 @@ No pushing to `main` is allowed.
 
 ```text
 .
+|-- .github/              # GitHub workflows and templates
 |-- LICENSE
 |-- Makefile
 |-- README.md
-|-- charts/                # Helm charts
-|   `-- ...
-|-- infra/                 # GKE manifests (Ingress, SSL, certs)
-|   `-- ...
-|-- sbs-gui/               # React frontend (Vite + TypeScript)
-|   `-- ...
-|-- sbs-solver/            # Rust backend & trie engine (Actix-web)
-|   `-- ...
-|-- scripts/               # Automation for builds and deployments
-|   `-- ...
-`-- ...                    # Other files
+|-- architecture/         # Diagrams
+|-- charts/               # Helm charts
+|-- infra/                # GKE manifests (Ingress, SSL, certs)
+|-- sbs-backend/          # Rust backend & trie engine (Actix-web)
+|-- sbs-frontend/         # React frontend (Vite + TypeScript)
+|-- docker-compose.yml    # Full stack Docker compose
+|-- target/               # Local build artifacts
+`-- ...                   # Other files
 ```
 
 ### Workflows
@@ -356,7 +354,7 @@ make format
 sbs --about
 
 sbs: Spelling Bee Solver tool
-├─ version:   0.1.0
+├─ version:   x.y.z
 ├─ developer: mailto:waclaw.kusnierczyk@gmail.com
 ├─ source:    https://github.com/wkusnierczyk/ips-sampler
 ├─ licence:   MIT https://opensource.org/licenses/MIT
