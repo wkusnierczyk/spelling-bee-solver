@@ -292,6 +292,7 @@ minikube-deploy: minikube-build ## Deploy charts to Minikube
 	helm upgrade --install $(RELEASE_NAME) ./charts/sbs-server \
 		--namespace $(NAMESPACE) \
 		--create-namespace \
+		--set backend.fullnameOverride=$(SBS_BACKEND_NAME) \
 		--set backend.image.repository=$(SBS_BACKEND_NAME) \
 		--set backend.image.tag=$(DOCKER_TAG) \
 		--set backend.image.pullPolicy=Never \
