@@ -37,6 +37,9 @@ jobs:
       - name: Setup GCloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
+      - name: Install GKE Auth Plugin
+        run: gcloud components install gke-gcloud-auth-plugin --quiet
+
       - name: Install Helm
         uses: azure/setup-helm@v3
 
