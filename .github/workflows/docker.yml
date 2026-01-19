@@ -20,12 +20,12 @@ jobs:
 
       # TEST 1: The "Tight Loop" Workflow (Individual Containers)
       # This verifies the legacy --link and manual docker run commands
-      - name: Test Individual Containers
+      - name: Test Docker Stack
         run: make test-docker-stack
 
       # TEST 2: The "Full Stack" Workflow (Docker Compose)
       # This verifies docker-compose.yml, networks, and DNS resolution
-      - name: Test Docker Compose
+      - name: Test Docker Compose Stack 
         run: make test-compose-stack
 
       # Debugging: If anything fails, show us the state of the world
@@ -39,5 +39,6 @@ jobs:
       - name: Cleanup
         if: always()
         run: |
-          make down
+          make stop-compose-stack
+          make stop-docker-stack
           make remove-docker-stack
