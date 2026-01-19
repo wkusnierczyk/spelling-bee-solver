@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.backend.name }}
+  labels:
+    app: {{ .Values.backend.name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.backend.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.backend.name }}
+    spec:
+      volumes:
+        - name: data-volume
+          emptyDir: {}
+      initContainers:
+        - name: download-dictionary
+          image: curlimages/curl:latest
+          command:
+            - sh
+            - -c
+            - |
+              curl -L -o /app/data/dictionary.txt \
+                https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt
+          volumeMounts:
+            - name: data-volume
+              mountPath: /app/data
+      containers:
+        - name: backend
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: SBS_DICT
+              value: "/app/data/dictionary.txt"
+          volumeMounts:
+            - name: data-volume
+              mountPath: /app/data
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}

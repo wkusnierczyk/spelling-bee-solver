@@ -31,7 +31,7 @@ The tool can be used as:
 * A locally deployed backend and frontend GUI.
 * A locally deployed Docker compose cluster.
 * A local k8s (kubernetes) cluster, deployed with minikube.
-* [**WIP**] A cloud service, deployed to GCP (Google Cloud Platform).
+* A cloud service, deployed to GCP (Google Cloud Platform).
 
 ### Using the Rust library
 
@@ -111,6 +111,10 @@ sbs --config /path/to/config.json --present a
 
 ### Local native deployment
 
+![Native](architecture/native.png)
+
+Deploy the service natively using the followng make targets.
+
 Build and start the backend and the frontend.
 
 ```bash
@@ -133,6 +137,10 @@ make stop-local
 ```
 
 ### Local deployment with Docker
+
+![Docker](architecture/docker.png)
+
+Deploy the service with Docker using the followng make targets.
 
 Build and use backend image.
 
@@ -182,7 +190,9 @@ make remove-docker-stack
 
 ### Local deployment with Docker Compose
 
-Deploy the stack using Docker Compose
+![Compose](architecture/compose.png)
+
+Deploy the service with Docker Compose using the followng make targets.
 
 ```bash
 # Start the whole stack
@@ -194,7 +204,9 @@ make docker-compose-down
 
 ### Local deployment with Kubernetes and Minikube
 
-Deploy the stack to a local Minikube cluster
+![Minikube](architecture/minikube.png)
+
+Deploy the stack to a local Minikube cluster using the followng make targets.
 
 ```bash
 # Start a local cluster (Docker driver)
@@ -217,6 +229,92 @@ make minikube-stop
 make minikube-delete
 ```
 
+### Cloud deployment (GCP)
+
+![Cloud](architecture/cloud.png)
+
+Deploy the stack to a GCP (Google Clopud Platform) Kubernetes cluster using the followng make targets.
+
+**Note**  
+Requires `GCP_PROJECT_ID`, `GCP_CLUSTER_NAME`, and `GCP_ZONE` environment variables to be set to appropriate values.
+Check your GCP project for details.
+
+```bash
+# Authenticate kubectl with the GKE cluster
+make gcp-auth
+
+# Build images for Cloud (Force AMD64 for GKE compatibility)
+make gcp-build
+
+# Push images to Google Container Registry
+make gcp-push
+
+# Deploy to staging namespace for testing
+make gcp-deploy-candidate
+
+# Test the candidate deployment in staging
+make gcp-test-candidate
+
+# Promote candidate to production (rolling update)
+make gcp-promote-candidate
+
+# Remove the staging deployment
+make gcp-cleanup-candidate
+
+# Full deployment pipeline
+make gcp-deploy
+
+# Show current deployment status
+make gcp-status
+
+# Tail backend logs from production
+make gcp-logs-backend
+
+# Tail frontend logs from production
+make gcp-logs-frontend
+
+# Rollback to previous production release
+make gcp-rollback
+
+# Remove all GCP deployments (DANGEROUS)
+make gcp-destroy
+```
+
+#### Cloud cost management
+
+To avoid excessive charges when the cloud service is not in use, scale down or stop the cluster.
+
+**Option A: Scale to zero**  
+Stops _compute_ costs.  
+The Load Balancer remains active (~$18/mo), but CPU/RAM incur no costs.
+
+```bash
+# Scale down
+make gcp-hibernate
+
+# Scale back up
+make gcp-wake
+```
+
+**Option B: Full teardown**  
+Stops _all_ costs.  
+Use for long-term breaks. Removes deployments, ingress, and load balancer.
+
+```bash
+# Remove everything
+make gcp-destroy
+
+# Redeploy later
+make gcp-deploy
+```
+
+**Check current state**
+
+```bash
+make gcp-status
+```
+
+
 ## Development
 
 The project is open source and welcomes contributions.
@@ -229,20 +327,18 @@ No pushing to `main` is allowed.
 
 ```text
 .
+|-- .github/              # GitHub workflows and templates
 |-- LICENSE
 |-- Makefile
 |-- README.md
-|-- charts/                # Helm charts
-|   `-- ...
-|-- infra/                 # GKE manifests (Ingress, SSL, certs)
-|   `-- ...
-|-- sbs-gui/               # React frontend (Vite + TypeScript)
-|   `-- ...
-|-- sbs-solver/            # Rust backend & trie engine (Actix-web)
-|   `-- ...
-|-- scripts/               # Automation for builds and deployments
-|   `-- ...
-`-- ...                    # Other files
+|-- architecture/         # Diagrams
+|-- charts/               # Helm charts
+|-- infra/                # GKE manifests (Ingress, SSL, certs)
+|-- sbs-backend/          # Rust backend & trie engine (Actix-web)
+|-- sbs-frontend/         # React frontend (Vite + TypeScript)
+|-- docker-compose.yml    # Full stack Docker compose
+|-- target/               # Local build artifacts
+`-- ...                   # Other files
 ```
 
 ### Workflows
@@ -291,7 +387,7 @@ make format
 sbs --about
 
 sbs: Spelling Bee Solver tool
-├─ version:   0.1.0
+├─ version:   x.y.z
 ├─ developer: mailto:waclaw.kusnierczyk@gmail.com
 ├─ source:    https://github.com/wkusnierczyk/ips-sampler
 ├─ licence:   MIT https://opensource.org/licenses/MIT

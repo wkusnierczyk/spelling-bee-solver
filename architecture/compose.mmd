@@ -1,0 +1,23 @@
+graph TD
+    User((User))
+    
+    subgraph "Host Machine"
+        Browser[Browser]
+        
+        subgraph "Docker Compose Environment"
+            Net((Internal Network<br/>sbs-network))
+            
+            subgraph "Service: frontend"
+                FrontContainer["Container: sbs-frontend"]
+            end
+            
+            subgraph "Service: backend"
+                BackContainer["Container: sbs-backend"]
+            end
+        end
+    end
+
+    User -->|http://localhost:80| Browser
+    Browser -->|Mapped Port 80:80| FrontContainer
+    FrontContainer -->|http://backend:8080| Net
+    Net -->|Resolve DNS| BackContainer

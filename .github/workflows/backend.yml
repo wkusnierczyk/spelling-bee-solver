@@ -14,33 +14,34 @@ jobs:
   test:
     name: Test & Lint
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./sbs-backend
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+    
     - name: Set up Rust
-      uses: actions-rs/toolchain@v1
+      uses: dtolnay/rust-toolchain@stable
       with:
-        toolchain: stable
-        override: true
-    - name: Cache Cargo registry
-      uses: actions/cache@v3
+        components: clippy
+    
+    - name: Cache Cargo
+      if: ${{ !env.ACT }}
+      uses: actions/cache@v4
       with:
-        path: ~/.cargo/registry
-        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('sbs-backend/Cargo.lock') }}
-    - name: Cache Cargo build
-      uses: actions/cache@v3
-      with:
-        path: sbs-backend/target
-        key: ${{ runner.os }}-cargo-build-${{ hashFiles('sbs-backend/Cargo.lock') }}
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          sbs-backend/target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('sbs-backend/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
     
     - name: Setup Data
-      run: ../scripts/setup_dictionary.sh
-
+      run: make setup-dictionary
+    
     - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
+      run: make build-backend
+    
+    - name: Test
+      run: make test
+    
     - name: Lint
-      run: cargo clippy -- -D warnings
+      run: make lint

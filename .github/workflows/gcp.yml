@@ -1,0 +1,86 @@
+name: GCP Deployment
+
+on:
+  workflow_call:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:  # Allow manual trigger
+
+env:
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_CLUSTER_NAME: ${{ secrets.GCP_CLUSTER_NAME }}
+  GCP_ZONE: ${{ secrets.GCP_ZONE }}
+
+jobs:
+  # Run tests first (reuse existing workflows)
+  gate-backend:
+    uses: ./.github/workflows/backend.yml
+  gate-docker:
+    uses: ./.github/workflows/docker.yml
+
+  deploy-gke:
+    name: Deploy to GKE
+    needs: [gate-backend, gate-docker]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Auth to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Setup GCloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Install GKE Auth Plugin
+        run: gcloud components install gke-gcloud-auth-plugin --quiet
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+
+      - name: Docker Auth to GCR
+        run: gcloud auth configure-docker --quiet
+
+      - name: Deploy (Build → Push → Stage → Test → Promote)
+        run: make gcp-deploy
+
+      - name: Verify Production
+        run: |
+          echo "Waiting for rollout to stabilize..."
+          sleep 30
+          
+          echo "Testing HTTPS endpoint..."
+          curl -s --fail -o /dev/null -w "%{http_code}" https://sbsolver.ch | grep -q "200" && echo "✅ Site reachable (200 OK)" || exit 1
+          
+          echo "Testing API endpoint..."
+          RESULT=$(curl -s -X POST https://sbsolver.ch/solve \
+            -H "Content-Type: application/json" \
+            -d '{"letters": "pelniga", "present": "a"}')
+          
+          if echo "$RESULT" | grep -q "appeal\|alpine"; then
+            echo "✅ API responding correctly"
+          else
+            echo "❌ API test failed"
+            echo "Response: $RESULT"
+            exit 1
+          fi
+
+      - name: Cleanup on Failure
+        if: failure()
+        run: |
+          echo "Deployment failed. Cleaning up staging..."
+          make gcp-cleanup-candidate || true
+          
+          echo "=== Staging Pod Status ==="
+          kubectl get pods -n sbs-staging || true
+          
+          echo "=== Production Pod Status ==="
+          kubectl get pods -n sbs-namespace || true
+          
+          echo "=== Recent Events ==="
+          kubectl get events -n sbs-namespace --sort-by='.lastTimestamp' | tail -20 || true

@@ -22,17 +22,41 @@ FRONTEND_PID = .frontend.pid
 # Containerisation
 DOCKER_TAG ?= latest
 
-# Conenience function for info messages
+# Convenience function for info messages
 define info
 	@printf "\033[36m[DIAG] %s\033[0m\n" $(1) >&2
 endef
 
+# Load environment variables if .env exists
+ifneq (,$(wildcard ./.env))
+    include .env
+    export
+endif
 
-.PHONY: help test lint format build-backend install-backend run-backend build-frontend run-frontend build-cli install-cli start-local stop-local status
+.PHONY: \
+	setup-dictionary \
+	test \
+	lint \
+	format \
+	help \
+	test \
+	lint \
+	format \
+	build-backend \
+	install-backend \
+	run-backend \
+	build-frontend \
+	run-frontend \
+	build-cli \
+	install-cli \
+	start-local \
+	stop-local \
+	status \
+	deploy-cloud \
+	build-architecture
 
 help: ## Show help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
-
 
 
 # --- Data Management ---
@@ -41,7 +65,6 @@ setup-dictionary: ## Force download of the dictionary (overwrites if exists)
 	$(call info, "Downloading fresh dictionary to $(SBS_DICT)...")
 	@mkdir -p $(dir $(SBS_DICT))
 	@curl -L -o $(SBS_DICT) $(DICT_URL) || (rm -f $(SBS_DICT) && exit 1)
-	$(call info, "Dictionary downloaded successfully.")
 
 
 # --- Hygiene & Testing ---
@@ -78,11 +101,11 @@ build-backend:
 
 install-backend: build-backend
 	$(call info, "Installing backend...")
-	d $(SBS_BACKEND_DIR) && cargo install --path . --bin $(SBS_BACKEND_NAME) --force
+	cd $(SBS_BACKEND_DIR) && cargo install --path . --bin $(SBS_BACKEND_NAME) --force
 
 start-backend: install-backend
 	$(call info, "Starting backend...")
-	cd $(SBS_BACKEND_DIR) && BS_DICT=$(SBS_DICT) $(SBS_BACKEND_NAME)
+	cd $(SBS_BACKEND_DIR) && SBS_DICT=$(SBS_DICT) $(SBS_BACKEND_NAME)
 
 
 # --- Frontend Management ---
@@ -94,6 +117,7 @@ build-frontend:
 start-frontend: ## Run the frontend dev server in the foreground
 	$(call info, "Starting frontend...")
 	cd $(SBS_FRONTEND_DIR) && npm run dev
+
 
 # --- Local Orchestration ---
 
@@ -270,6 +294,22 @@ ci-compose: ## Run Docker Compose workflow locally
 	$(call info, "Running Docker Compose Workflow locally...")
 	act -W .github/workflows/compose.yml --container-architecture linux/amd64
 
+ci-minikube: ## Run Minikube workflow locally
+	$(call info, "Running Minikube Workflow locally...")
+	act -W .github/workflows/minikube.yml \
+		--container-architecture linux/amd64 \
+		--platform ubuntu-latest=catthehacker/ubuntu:act-latest \
+		--bind \
+		--reuse
+
+ci-gcp: ## Run GCP workflow locally
+	$(call info, "Running GCP Workflow locally...")
+	act -W .github/workflows/gcp.yml \
+		--container-architecture linux/amd64 \
+		--platform ubuntu-latest=catthehacker/ubuntu:act-latest \
+		--bind \
+		--reuse
+
 ci-all: ## Run all workflows locally
 	act --container-architecture linux/amd64
 
@@ -283,13 +323,13 @@ minikube-start:
 minikube-build: setup-dictionary
 	$(call info, "Pointing Docker to Minikube...")
 	@eval $$(minikube docker-env) && \
-	docker build -t $(SBS_BACKEND_NAME):$(DOCKER_TAG) -f $(SBS_BACKEND_DIR)/Dockerfile $(SBS_BACKEND_DIR) && \
-	docker build -t $(SBS_FRONTEND_NAME):$(DOCKER_TAG) -f $(SBS_FRONTEND_DIR)/Dockerfile $(SBS_FRONTEND_DIR)
+		docker build -t $(SBS_BACKEND_NAME):$(DOCKER_TAG) -f $(SBS_BACKEND_DIR)/Dockerfile $(SBS_BACKEND_DIR) && \
+		docker build -t $(SBS_FRONTEND_NAME):$(DOCKER_TAG) -f $(SBS_FRONTEND_DIR)/Dockerfile $(SBS_FRONTEND_DIR)
 	$(call info, "Images built inside Minikube registry.")
 
 minikube-deploy: minikube-build ## Deploy charts to Minikube
 	$(call info, "Deploying Helm Release $(RELEASE_NAME)...")
-	helm upgrade --install $(RELEASE_NAME) ./charts/sbs-server \
+	helm upgrade --install $(RELEASE_NAME) ./charts/minikube \
 		--namespace $(NAMESPACE) \
 		--create-namespace \
 		--set backend.fullnameOverride=$(SBS_BACKEND_NAME) \
@@ -306,12 +346,12 @@ minikube-test: ## Verify the Minikube deployment (Wait + Curl)
 	$(call info, "Waiting for Pods to be ready...")
 	@kubectl wait --namespace $(NAMESPACE) --for=condition=ready pod --selector=app=$(SBS_BACKEND_NAME) --timeout=$(MINIKUBE_TEST_TIMEOUT)
 	@kubectl wait --namespace $(NAMESPACE) --for=condition=ready pod --selector=app=$(SBS_FRONTEND_NAME) --timeout=$(MINIKUBE_TEST_TIMEOUT)
-
+	
 	$(call info, "1. Testing Frontend Static Content (Port-Forward)...")
 	@kubectl port-forward service/$(SBS_FRONTEND_NAME) -n $(NAMESPACE) 9090:80 > /dev/null 2>&1 & \
 	PID=$$!; \
 	sleep 5; \
-	curl -s --fail http://localhost:9090 | grep "<title>" && echo "   ✅ Static content served" || (kill $$PID && exit 1); \
+	curl -s --fail http://localhost:9090 | grep "<title>" && echo "   Static content served" || (kill $$PID && exit 1); \
 	kill $$PID
 
 	$(call info, "2. Testing Frontend -> Backend Connectivity (Internal)...")
@@ -319,8 +359,9 @@ minikube-test: ## Verify the Minikube deployment (Wait + Curl)
 	@# 'wget --spider' returns exit code 0 if the server returns 200 OK
 	@kubectl exec -n $(NAMESPACE) deployment/$(RELEASE_NAME)-frontend -- \
 		wget -q --spider http://$(SBS_BACKEND_NAME):8080/health && \
-		echo "   ✅ Backend reachable from Frontend"
-
+		echo "   Backend reachable from Frontend" && \
+		echo "" && \
+		echo "Full Stack Verified!"
 
 minikube-url: ## Open the frontend URL in the default browser
 	$(call info, "Opening Frontend Service...")
@@ -339,13 +380,154 @@ minikube-delete: ## Nuke the Minikube cluster (fresh start)
 	minikube delete
 
 
+# --- Cloud / GCP Orchestration ---
+
+GCP_REGISTRY = gcr.io/$(GCP_PROJECT_ID)
+CLOUD_TAG ?= $(shell git rev-parse --short HEAD)
+NAMESPACE = sbs-namespace
+STAGING_NAMESPACE = sbs-staging
+RELEASE_NAME = sbs-prod
+STAGING_RELEASE_NAME = sbs-staging
+
+gcp-auth: ## Authenticate kubectl with the GKE cluster
+	gcloud container clusters get-credentials $(GCP_CLUSTER_NAME) --zone $(GCP_ZONE) --project $(GCP_PROJECT_ID)
+
+gcp-build: ## Build images for Cloud (Force AMD64 for GKE compatibility)
+	$(call info, "Building Cloud Images (linux/amd64) with tag $(CLOUD_TAG)...")
+	docker build --platform linux/amd64 -t $(GCP_REGISTRY)/$(SBS_BACKEND_NAME):$(CLOUD_TAG) -f $(SBS_BACKEND_DIR)/Dockerfile $(SBS_BACKEND_DIR)
+	docker build --platform linux/amd64 -t $(GCP_REGISTRY)/$(SBS_FRONTEND_NAME):$(CLOUD_TAG) -f $(SBS_FRONTEND_DIR)/Dockerfile $(SBS_FRONTEND_DIR)
+
+gcp-push: gcp-build ## Push images to Google Container Registry
+	$(call info, "Pushing images to GCR...")
+	docker push $(GCP_REGISTRY)/$(SBS_BACKEND_NAME):$(CLOUD_TAG)
+	docker push $(GCP_REGISTRY)/$(SBS_FRONTEND_NAME):$(CLOUD_TAG)
+
+gcp-deploy-candidate: gcp-push ## Deploy to staging namespace for testing
+	$(call info, "Deploying candidate to staging namespace...")
+	helm upgrade --install $(STAGING_RELEASE_NAME) ./charts/gcp \
+		--namespace $(STAGING_NAMESPACE) \
+		--create-namespace \
+		--set backend.image.tag=$(CLOUD_TAG) \
+		--set frontend.image.tag=$(CLOUD_TAG) \
+		--set ingress.enabled=false \
+		--set certificate.enabled=false \
+		--set frontend.service.type=LoadBalancer \
+		--wait --timeout=5m
+	$(call info, "Candidate deployed to staging namespace")
+
+gcp-test-candidate: ## Test the candidate deployment in staging
+	$(call info, "Waiting for staging LoadBalancer IP...")
+	@IP=""; \
+	count=0; \
+	while [ -z "$$IP" ]; do \
+		IP=$$(kubectl get svc -n $(STAGING_NAMESPACE) sbs-frontend -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null); \
+		if [ -z "$$IP" ]; then \
+			echo "   ...waiting for LoadBalancer IP ($$count/60)"; \
+			sleep 5; \
+			count=$$((count+1)); \
+			if [ $$count -ge 60 ]; then echo "Timeout getting IP"; exit 1; fi; \
+		fi; \
+	done; \
+	echo "Staging IP: $$IP"; \
+	echo ""; \
+	echo "1. Testing Frontend Static Content..."; \
+	for i in 1 2 3 4 5; do \
+		if curl -s --fail "http://$$IP" | grep -q "<title>"; then \
+			echo "   ✅ Frontend serving content"; \
+			break; \
+		fi; \
+		echo "   ...retrying ($$i/5)"; \
+		sleep 5; \
+	done; \
+	echo ""; \
+	echo "2. Testing Backend API via Frontend Proxy..."; \
+	RESULT=$$(curl -s -X POST "http://$$IP/solve" \
+		-H "Content-Type: application/json" \
+		-d '{"letters": "pelniga", "present": "a"}'); \
+	if echo "$$RESULT" | grep -q "appeal\|alpine"; then \
+		echo "   ✅ Backend API responding correctly"; \
+	else \
+		echo "   ❌ Backend API test failed"; \
+		echo "   Response: $$RESULT"; \
+		exit 1; \
+	fi; \
+	echo ""; \
+	echo "✅ All candidate tests passed!"
+
+gcp-promote-candidate: ## Promote candidate to production (rolling update)
+	$(call info, "Promoting candidate to production...")
+	helm upgrade --install $(RELEASE_NAME) ./charts/gcp \
+		--namespace $(NAMESPACE) \
+		--create-namespace \
+		--set backend.image.tag=$(CLOUD_TAG) \
+		--set frontend.image.tag=$(CLOUD_TAG) \
+		--set ingress.enabled=true \
+		--set certificate.enabled=true \
+		--set frontend.service.type=NodePort \
+		--wait --timeout=5m
+	$(call info, "Production updated with rolling deployment")
+	@kubectl get ingress -n $(NAMESPACE)
+
+gcp-cleanup-candidate: ## Remove the staging deployment
+	$(call info, "Cleaning up staging namespace...")
+	helm uninstall $(STAGING_RELEASE_NAME) -n $(STAGING_NAMESPACE) 2>/dev/null || true
+	kubectl delete namespace $(STAGING_NAMESPACE) --ignore-not-found=true
+	$(call info, "Staging cleaned up")
+
+gcp-deploy: gcp-auth gcp-deploy-candidate gcp-test-candidate gcp-promote-candidate gcp-cleanup-candidate ## Full deployment pipeline
+	$(call info, "🚀 Deployment complete!")
+
+gcp-status: ## Show current deployment status
+	$(call info, "Production namespace ($(NAMESPACE)):")
+	@kubectl get pods,svc,ingress -n $(NAMESPACE) 2>/dev/null || echo "   No resources found"
+	@echo ""
+	$(call info, "Staging namespace ($(STAGING_NAMESPACE)):")
+	@kubectl get pods,svc -n $(STAGING_NAMESPACE) 2>/dev/null || echo "   No resources found"
+	@echo ""
+	$(call info, "Managed Certificate:")
+	@kubectl get managedcertificate -n $(NAMESPACE) 2>/dev/null || echo "   No certificate found"
+
+gcp-logs-backend: ## Tail backend logs from production
+	kubectl logs -f -n $(NAMESPACE) -l app=sbs-backend --all-containers
+
+gcp-logs-frontend: ## Tail frontend logs from production
+	kubectl logs -f -n $(NAMESPACE) -l app=sbs-frontend --all-containers
+
+gcp-rollback: ## Rollback to previous production release
+	$(call info, "Rolling back production deployment...")
+	helm rollback $(RELEASE_NAME) -n $(NAMESPACE)
+	$(call info, "Rollback complete")
+
+gcp-destroy: ## Remove all GCP deployments (DANGEROUS)
+	$(call info, "Destroying all deployments...")
+	helm uninstall $(RELEASE_NAME) -n $(NAMESPACE) 2>/dev/null || true
+	helm uninstall $(STAGING_RELEASE_NAME) -n $(STAGING_NAMESPACE) 2>/dev/null || true
+	kubectl delete namespace $(STAGING_NAMESPACE) --ignore-not-found=true
+	$(call info, "All deployments removed")
 
 
+# --- Cloud Cost Management ---
 
-# --- Cloud/Infra (Preserved) ---
+gcp-hibernate: ## Scale deployments to zero (stops compute costs, keeps LB)
+	$(call info, "Scaling deployments to zero...")
+	kubectl scale deployment sbs-backend --replicas=0 -n $(NAMESPACE)
+	kubectl scale deployment sbs-frontend --replicas=0 -n $(NAMESPACE)
+	$(call info, "Cluster hibernated. Run 'make gcp-wake' to restore.")
 
-status: ## Check Cloud Health
-	kubectl get ingress,pods -n $(NAMESPACE)
+gcp-wake: ## Restore deployments from hibernation
+	$(call info, "Waking up deployments...")
+	kubectl scale deployment sbs-backend --replicas=1 -n $(NAMESPACE)
+	kubectl scale deployment sbs-frontend --replicas=1 -n $(NAMESPACE)
+	kubectl rollout status deployment/sbs-backend -n $(NAMESPACE) --timeout=120s
+	kubectl rollout status deployment/sbs-frontend -n $(NAMESPACE) --timeout=120s
+	$(call info, "Cluster is awake and ready.")
 
-deploy: ## Build and Push to Cloud (GCP)
-	./scripts/deploy_gcp.sh
+
+# --- Architecture Diagram Generation ---
+
+generate-diagrams: ## Build all architecture diagrams with mmdc
+	$(call info, "Building architecture diagrams...")
+	@for file in ./architecture/*.mmd; do \
+		echo "Processing $$file..."; \
+		mmdc -i "$$file" -o "$${file%.mmd}.png"; \
+	done

@@ -1,0 +1,43 @@
+replicaCount: 1
+
+backend:
+  name: sbs-backend
+  image:
+    repository: gcr.io/sbs-solver/sbs-backend
+    tag: latest
+    pullPolicy: Always
+  service:
+    port: 8080
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+frontend:
+  name: sbs-frontend
+  image:
+    repository: gcr.io/sbs-solver/sbs-frontend
+    tag: latest
+    pullPolicy: Always
+  service:
+    type: NodePort
+    port: 80
+  resources:
+    requests:
+      cpu: 25m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+
+ingress:
+  enabled: true
+  host: sbsolver.ch
+  staticIpName: sbs-global-ip
+
+certificate:
+  enabled: true
+  name: sbs-managed-cert
