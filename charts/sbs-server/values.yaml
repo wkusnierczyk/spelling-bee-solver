@@ -24,6 +24,8 @@ frontend:
     type: NodePort
     port: 80
     targetPort: 80
+    annotations:
+      cloud.google.com/neg: '{"ingress":true}'
 
 resources:
   limits:
