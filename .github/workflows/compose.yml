@@ -1,4 +1,4 @@
-name: Docker Integration
+name: Docker Compose Integration
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   integration-tests:
-    name: Docker Fullstack Test
+    name: Docker Compose Test
     runs-on: ubuntu-latest
     
     steps:
@@ -18,17 +18,15 @@ jobs:
       - name: Setup Dictionary
         run: make setup-dictionary
 
-      - name: Test Docker Stack
-        run: make test-docker-stack
+      - name: Test Docker Compose Stack 
+        run: make test-compose-stack
 
       - name: Dump Docker Logs
         if: failure()
         run: |
-          docker logs sbs-backend || true
-          docker logs sbs-frontend || true
+          docker compose logs || true
 
       - name: Cleanup
         if: always()
         run: |
-          make stop-docker-stack
-          make remove-docker-stack
+          make stop-compose-stack
