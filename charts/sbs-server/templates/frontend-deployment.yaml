@@ -14,6 +14,11 @@ spec:
       labels:
         app: sbs-frontend
     spec:
+      initContainers:
+        - name: wait-for-backend
+          image: busybox:1.28
+          command: ['sh', '-c', "until nslookup sbs-backend.$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace).svc.cluster.local; do echo waiting for sbs-backend; sleep 2; done"]
+      
       containers:
         - name: frontend
           image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"

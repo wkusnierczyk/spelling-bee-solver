@@ -1,0 +1,49 @@
+name: Minikube Integration
+
+on:
+  workflow_call:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  minikube-ci:
+    name: K8s Integration Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Start Minikube
+        uses: medyagh/setup-minikube@master
+        with:
+          driver: docker
+          cache: true
+
+      - name: Setup Dictionary
+        run: make setup-dictionary
+
+      - name: Build & Deploy
+        run: |
+          eval $(minikube docker-env)
+          make minikube-deploy
+
+      - name: Run Integration Tests
+        run: make minikube-test
+
+      - name: Dump Pod Status
+        if: failure()
+        run: |
+          echo "=== POD STATUS ==="
+          kubectl get pods -n sbs-namespace
+          
+          echo "=== POD EVENTS (Describe) ==="
+          # 'describe' is better for startup errors (ImagePullBackOff, Init failures)
+          kubectl describe pods -n sbs-namespace
+          
+          echo "=== LOGS ==="
+          # --all-containers gets Init logs too. '|| true' prevents crash if pod isn't ready.
+          kubectl logs -n sbs-namespace -l app=sbs-frontend --all-containers=true --tail=50 || true
+          kubectl logs -n sbs-namespace -l app=sbs-backend --all-containers=true --tail=50 || true

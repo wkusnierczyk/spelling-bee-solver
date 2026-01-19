@@ -13,7 +13,9 @@ The tool was built as a proof of concept, a BWYN (build what you need) tool for 
   - [Using the Rust library](#using-the-rust-library)
   - [Using the CLI](#using-the-cli)
   - [Local native deployment](#local-native-deployment)
-  - [Local containerised deployment](#local-containerised-deployment)
+  - [Local deployment with Docker](#local-deployment-with-docker)
+  - [Local deployment with Docker Compose](#local-deployment-with-docker-compose)
+  - [Local deployment with Kubernetes and Minikube](#local-deployment-with-kubernetes-and-minikube)
 - [Development](#development)
   - [Project structure](#project-structure)
   - [Workflows](#workflows)
@@ -28,7 +30,7 @@ The tool can be used as:
 * A CLI (command-line interface) tool that can be installed on a local machine and executed in the terminal.
 * A locally deployed backend and frontend GUI.
 * A locally deployed Docker compose cluster.
-* [**WIP**] A local k8s (kubernetes) cluster, deployed with minikube.
+* A local k8s (kubernetes) cluster, deployed with minikube.
 * [**WIP**] A cloud service, deployed to GCP (Google Cloud Platform).
 
 ### Using the Rust library
@@ -130,7 +132,7 @@ make start-local
 make stop-local
 ```
 
-### Local containerised deployment
+### Local deployment with Docker
 
 Build and use backend image.
 
@@ -178,6 +180,8 @@ make stop-docker-stack
 make remove-docker-stack
 ```
 
+### Local deployment with Docker Compose
+
 Deploy the stack using Docker Compose
 
 ```bash
@@ -186,6 +190,31 @@ make docker-compose-up
 
 # Stop the whole stack
 make docker-compose-down
+```
+
+### Local deployment with Kubernetes and Minikube
+
+Deploy the stack to a local Minikube cluster
+
+```bash
+# Start a local cluster (Docker driver)
+make minikube-start
+
+# Build images inside Minikube registry and deploy via Helm
+make minikube-deploy
+
+# Verify pods and service connectivity
+make minikube-test
+
+# Open the frontend service in your browser
+make minikube-url
+
+# Clean up the Helm release (cluster stays running)
+make minikube-clean
+
+# Stop or delete the Minikube cluster
+make minikube-stop
+make minikube-delete
 ```
 
 ## Development
