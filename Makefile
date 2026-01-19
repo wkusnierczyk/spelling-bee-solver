@@ -248,6 +248,32 @@ fullstack-smoke-test:
 	@make test-frontend-container
 
 
+# --- Local CI/CD Simulation (Requires 'act') ---
+
+ci-list: ## List all available workflows detected by act
+	act -l
+
+ci-backend: ## Run the backend CI workflow locally using a complete runner image
+	$(call info, "Running Backend Workflow locally...")
+	@# We force ubuntu-latest to use the 'catthehacker' image which includes Node, Rust, etc.
+	act -W .github/workflows/backend.yml \
+		--container-architecture linux/amd64 \
+		--platform ubuntu-latest=catthehacker/ubuntu:act-latest \
+		--bind \
+		--reuse
+		
+ci-docker: ## Run Docker workflow locally
+	$(call info, "Running Docker Workflow locally...")
+	act -W .github/workflows/docker.yml --container-architecture linux/amd64
+
+ci-compose: ## Run Docker Compose workflow locally
+	$(call info, "Running Docker Compose Workflow locally...")
+	act -W .github/workflows/compose.yml --container-architecture linux/amd64
+
+ci-all: ## Run all workflows locally
+	act --container-architecture linux/amd64
+
+
 
 
 # --- Cloud/Infra (Preserved) ---
