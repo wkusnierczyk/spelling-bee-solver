@@ -1,0 +1,26 @@
+{{- if .Values.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}-ingress
+  labels:
+    app: {{ .Release.Name }}
+  annotations:
+    # Standard GKE Ingress Class
+    kubernetes.io/ingress.class: "gce"
+    # If you use a managed cert, uncomment and set the name:
+    # networking.gke.io/managed-certificates: "sbs-certificate"
+spec:
+  rules:
+    - host: {{ index .Values.ingress.hosts 0 "host" | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                # FIX: Point to the standardized service name "sbs-frontend"
+                name: {{ .Values.frontend.fullnameOverride | default (printf "%s-frontend" .Release.Name) }}
+                port:
+                  number: 80
+{{- end }}
