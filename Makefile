@@ -304,25 +304,23 @@ minikube-deploy: minikube-build ## Deploy charts to Minikube
 MINIKUBE_TEST_TIMEOUT = 120s
 minikube-test: ## Verify the Minikube deployment (Wait + Curl)
 	$(call info, "Waiting for Pods to be ready...")
-	@# 1. Wait for Backend
-	@kubectl wait --namespace $(NAMESPACE) \
-		--for=condition=ready pod \
-		--selector=app=$(SBS_BACKEND_NAME) \
-		--timeout=$(MINIKUBE_TEST_TIMEOUT)
-	@# 2. Wait for Frontend
-	@kubectl wait --namespace $(NAMESPACE) \
-		--for=condition=ready pod \
-		--selector=app=$(SBS_FRONTEND_NAME) \
-		--timeout=$(MINIKUBE_TEST_TIMEOUT)
-	$(call info, "Testing Service via Port-Forward...")
-	@# 3. Start a background port-forward to map local 9090 -> Service 80
+	@kubectl wait --namespace $(NAMESPACE) --for=condition=ready pod --selector=app=$(SBS_BACKEND_NAME) --timeout=$(MINIKUBE_TEST_TIMEOUT)
+	@kubectl wait --namespace $(NAMESPACE) --for=condition=ready pod --selector=app=$(SBS_FRONTEND_NAME) --timeout=$(MINIKUBE_TEST_TIMEOUT)
+
+	$(call info, "1. Testing Frontend Static Content (Port-Forward)...")
 	@kubectl port-forward service/$(SBS_FRONTEND_NAME) -n $(NAMESPACE) 9090:80 > /dev/null 2>&1 & \
 	PID=$$!; \
 	sleep 5; \
-	echo "   ...curling http://localhost:9090"; \
-	curl -s --fail http://localhost:9090 | grep "<title>" || (kill $$PID && exit 1); \
+	curl -s --fail http://localhost:9090 | grep "<title>" && echo "   ✅ Static content served" || (kill $$PID && exit 1); \
 	kill $$PID
-	$(call info, "Minikube Deployment Verified!")
+
+	$(call info, "2. Testing Frontend -> Backend Connectivity (Internal)...")
+	@# Exec into the frontend pod and ping the backend
+	@# 'wget --spider' returns exit code 0 if the server returns 200 OK
+	@kubectl exec -n $(NAMESPACE) deployment/$(RELEASE_NAME)-frontend -- \
+		wget -q --spider http://$(SBS_BACKEND_NAME):8080/health && \
+		echo "   ✅ Backend reachable from Frontend"
+
 
 minikube-url: ## Open the frontend URL in the default browser
 	$(call info, "Opening Frontend Service...")
