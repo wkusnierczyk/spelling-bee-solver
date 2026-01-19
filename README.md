@@ -31,7 +31,7 @@ The tool can be used as:
 * A locally deployed backend and frontend GUI.
 * A locally deployed Docker compose cluster.
 * A local k8s (kubernetes) cluster, deployed with minikube.
-* [**WIP**] A cloud service, deployed to GCP (Google Cloud Platform).
+* A cloud service, deployed to GCP (Google Cloud Platform).
 
 ### Using the Rust library
 
