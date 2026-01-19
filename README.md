@@ -284,33 +284,35 @@ make gcp-destroy
 
 To avoid excessive charges when the cloud service is not in use, scale down or stop the cluster.
 
-**Option A**  
-Scale to zero (stops _compute_ costs).
+**Option A: Scale to zero**  
+Stops _compute_ costs.  
 The Load Balancer remains active (~$18/mo), but CPU/RAM incur no costs.
 
 ```bash
-# STOP
-kubectl scale deployment sbs-prod-backend --replicas=0 -n sbs-namespace
-kubectl scale deployment sbs-prod-frontend --replicas=0 -n sbs-namespace
+# Scale down
+make gcp-hibernate
 
-# START (Back Up)
-kubectl scale deployment sbs-prod-backend --replicas=1 -n sbs-namespace
-kubectl scale deployment sbs-prod-frontend --replicas=1 -n sbs-namespace
+# Scale back up
+make gcp-wake
 ```
 
-**Option B**  
-Delete ingress (stops _load balancer_ costs).
-Use for long-term breaks.
+**Option B: Full teardown**  
+Stops _all_ costs.  
+Use for long-term breaks. Removes deployments, ingress, and load balancer.
 
 ```bash
-# STOP
-kubectl delete -f infra/sbs-ingress.yaml
+# Remove everything
+make gcp-destroy
 
-# START
-kubectl apply -f infra/sbs-ingress.yaml
+# Redeploy later
+make gcp-deploy
 ```
 
+**Check current state**
 
+```bash
+make gcp-status
+```
 
 
 ## Development

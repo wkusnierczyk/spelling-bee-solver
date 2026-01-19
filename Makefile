@@ -33,12 +33,30 @@ ifneq (,$(wildcard ./.env))
     export
 endif
 
-
-.PHONY: help test lint format build-backend install-backend run-backend build-frontend run-frontend build-cli install-cli start-local stop-local status deploy-cloud build-architecture
+.PHONY: \
+	setup-dictionary \
+	test \
+	lint \
+	format \
+	help \
+	test \
+	lint \
+	format \
+	build-backend \
+	install-backend \
+	run-backend \
+	build-frontend \
+	run-frontend \
+	build-cli \
+	install-cli \
+	start-local \
+	stop-local \
+	status \
+	deploy-cloud \
+	build-architecture
 
 help: ## Show help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
-
 
 
 # --- Data Management ---
@@ -99,6 +117,7 @@ build-frontend:
 start-frontend: ## Run the frontend dev server in the foreground
 	$(call info, "Starting frontend...")
 	cd $(SBS_FRONTEND_DIR) && npm run dev
+
 
 # --- Local Orchestration ---
 
@@ -328,7 +347,6 @@ minikube-test: ## Verify the Minikube deployment (Wait + Curl)
 		echo "" && \
 		echo "Full Stack Verified!"
 
-
 minikube-url: ## Open the frontend URL in the default browser
 	$(call info, "Opening Frontend Service...")
 	minikube service $(SBS_FRONTEND_NAME) -n $(NAMESPACE)
@@ -471,6 +489,25 @@ gcp-destroy: ## Remove all GCP deployments (DANGEROUS)
 	kubectl delete namespace $(STAGING_NAMESPACE) --ignore-not-found=true
 	$(call info, "All deployments removed")
 
+
+# --- Cloud Cost Management ---
+
+gcp-hibernate: ## Scale deployments to zero (stops compute costs, keeps LB)
+	$(call info, "Scaling deployments to zero...")
+	kubectl scale deployment sbs-backend --replicas=0 -n $(NAMESPACE)
+	kubectl scale deployment sbs-frontend --replicas=0 -n $(NAMESPACE)
+	$(call info, "Cluster hibernated. Run 'make gcp-wake' to restore.")
+
+gcp-wake: ## Restore deployments from hibernation
+	$(call info, "Waking up deployments...")
+	kubectl scale deployment sbs-backend --replicas=1 -n $(NAMESPACE)
+	kubectl scale deployment sbs-frontend --replicas=1 -n $(NAMESPACE)
+	kubectl rollout status deployment/sbs-backend -n $(NAMESPACE) --timeout=120s
+	kubectl rollout status deployment/sbs-frontend -n $(NAMESPACE) --timeout=120s
+	$(call info, "Cluster is awake and ready.")
+
+
+# --- Architecture Diagram Generation ---
 
 generate-diagrams: ## Build all architecture diagrams with mmdc
 	$(call info, "Building architecture diagrams...")
