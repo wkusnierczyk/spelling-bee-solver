@@ -10,18 +10,18 @@ graph TD
         IngressCtrl[("Nginx Ingress Controller<br/>(Emulates LoadBalancer)")]
         
         subgraph "Namespace: sbs-namespace"
-            SvcFront["Service: sbs-candidate-frontend"]
+            SvcFront["Service: sbs-frontend"]
             PodFront["Pod: Frontend"]
             
-            SvcBack["Service: sbs-candidate-backend"]
+            SvcBack["Service: sbs-backend"]
             PodBack["Pod: Backend"]
         end
     end
 
-    User -->|http://sbsolver.local| Browser
+    User -->|http://localhost| Browser
     Browser -->|Routes to| Terminal
     Terminal -->|Tunnel / Bridge| IngressCtrl
     IngressCtrl -->|Routing Rule| SvcFront
     SvcFront --> PodFront
-    PodFront -->|Proxy http://sbs-backend| SvcBack
+    PodFront -->|Proxy /solve| SvcBack
     SvcBack --> PodBack

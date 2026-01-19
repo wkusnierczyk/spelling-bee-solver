@@ -5,7 +5,7 @@ graph TD
         Browser[Browser]
         
         subgraph "Terminal 1 - Frontend"
-            ReactDev["Node.js / React Dev Server<br/>(Port 3000)"]
+            ReactDev["Vite Dev Server<br/>(Port 5173)"]
         end
         
         subgraph "Terminal 2 - Backend"
@@ -15,6 +15,6 @@ graph TD
     end
 
     User -->|Opens| Browser
-    Browser -->|http://localhost:3000| ReactDev
+    Browser -->|http://localhost:5173| ReactDev
     ReactDev -->|Proxy /solve| RustBinary
     RustBinary -->|Read| FileSys
