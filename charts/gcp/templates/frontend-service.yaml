@@ -3,17 +3,15 @@ kind: Service
 metadata:
   name: {{ .Values.frontend.fullnameOverride | default "sbs-frontend" }}
   labels:
-    app: {{ .Values.frontend.name | default "sbs-frontend" }}
+    app: sbs-frontend
   annotations:
-    {{- with .Values.frontend.service.annotations }}
-    {{- toYaml . | nindent 4 }}
-    {{- end }}
+    cloud.google.com/neg: '{"ingress":true}'
 spec:
-  type: {{ .Values.frontend.service.type }}
+  type: NodePort
   ports:
-    - port: {{ .Values.frontend.service.port }}
+    - port: 80
       targetPort: 80
       protocol: TCP
       name: http
   selector:
-    app: {{ .Values.frontend.name | default "sbs-frontend" }}
+    app: sbs-frontend

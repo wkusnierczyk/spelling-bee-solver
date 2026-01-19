@@ -6,6 +6,7 @@ metadata:
   labels:
     app: {{ .Release.Name }}
   annotations:
+    kubernetes.io/ingress.class: "gce"
     {{- toYaml .Values.ingress.annotations | nindent 4 }}
 spec:
   ingressClassName: "gce"

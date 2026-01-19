@@ -368,7 +368,7 @@ gcp-push: gcp-build ## Push images to Google Container Registry
 gcp-deploy-candidate: gcp-push ## Deploy Candidate: No Ingress, Use LoadBalancer for testing
 	$(call info, "Deploying Candidate Release (sbs-candidate)...")
 	@# Strategy: We force type=LoadBalancer to get a temporary IP for testing
-	helm upgrade --install sbs-candidate ./charts/sbs-server \
+	helm upgrade --install sbs-candidate ./charts/gcp \
 		--namespace $(NAMESPACE) \
 		--create-namespace \
 		--set backend.fullnameOverride=sbs-candidate-backend \
@@ -378,7 +378,6 @@ gcp-deploy-candidate: gcp-push ## Deploy Candidate: No Ingress, Use LoadBalancer
 		--set frontend.image.repository=$(GCP_REGISTRY)/$(SBS_FRONTEND_NAME) \
 		--set frontend.image.tag=$(CLOUD_TAG) \
 		--set ingress.enabled=false \
-		--set frontend.service.type=LoadBalancer \
 		--wait
 
 gcp-test-candidate: ## Run Smoke Tests against the Candidate IP
@@ -401,7 +400,7 @@ gcp-test-candidate: ## Run Smoke Tests against the Candidate IP
 
 gcp-promote: ## Promote to Prod: Enable Ingress, Use NodePort (Standard)
 	$(call info, "Promoting to Production (sbs-prod)...")
-	helm upgrade --install $(RELEASE_NAME) ./charts/sbs-server \
+	helm upgrade --install $(RELEASE_NAME) ./charts/gcp \
 		--namespace $(NAMESPACE) \
 		--create-namespace \
 		--set backend.fullnameOverride=$(SBS_BACKEND_NAME) \
