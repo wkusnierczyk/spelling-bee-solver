@@ -1,0 +1,5 @@
+architecture/docker.png filter=lfs diff=lfs merge=lfs -text
+architecture/minikube.png filter=lfs diff=lfs merge=lfs -text
+architecture/native.png filter=lfs diff=lfs merge=lfs -text
+architecture/cloud.png filter=lfs diff=lfs merge=lfs -text
+architecture/compose.png filter=lfs diff=lfs merge=lfs -text
