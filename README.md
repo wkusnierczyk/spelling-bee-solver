@@ -34,7 +34,7 @@ The tool can be used as:
 * A rust library, that can be used in client rust code.
 * A CLI (command-line interface) tool that can be installed on a local machine and executed in the terminal.
 * A locally deployed backend and frontend GUI.
-* [WIP] A locally deployed Docker compose cluster.
+* A locally deployed Docker compose cluster.
 * [WIP] A local k8s (kubernetes) cluster, deployed with minikube.
 * [WIP] A cloud service, deployed to GCP (Google Cloud Platform).
 
