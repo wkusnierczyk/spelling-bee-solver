@@ -16,6 +16,8 @@ jobs:
     uses: ./.github/workflows/docker.yml
   gate-compose:
     uses: ./.github/workflows/compose.yml
+  gate-minikube:
+    uses: ./.github/workflows/minikube.yml
 
   # 1. Create the Draft Release immediately
   create-draft:
