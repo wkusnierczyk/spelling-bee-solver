@@ -7,26 +7,6 @@ It offers a _solver_: a tool for solving Spelling Bee challenges.
 The purpose, of course, is not the cheat the game by copying words over from an automated solver.
 The tool was built as a proof of concept, a BWYN (build what you need) tool for educational purposes, and as an exercise in bui;ding and deploying such tools.
 
-## Project structure
-
-```text
-.
-|-- LICENSE
-|-- Makefile
-|-- README.md
-|-- charts/                # Helm charts
-|   `-- ...
-|-- infra/                 # GKE manifests (Ingress, SSL, certs)
-|   `-- ...
-|-- sbs-gui/               # React frontend (Vite + TypeScript)
-|   `-- ...
-|-- sbs-solver/            # Rust backend & trie engine (Actix-web)
-|   `-- ...
-|-- scripts/               # Automation for builds and deployments
-|   `-- ...
-`-- ...                    # Other files
-```
-
 ## Deployment options
 
 The tool can be used as:
@@ -197,7 +177,36 @@ make docker-compose-down
 
 ## Development
 
+The project is open source and welcomes contributions.
+Use [issues](https://github.com/wkusnierczyk/spelling-bee-solver/issues) and [discussions](https://github.com/wkusnierczyk/spelling-bee-solver/discussions) to provide feedback and contributions.
+
+Use [pull requests](https://github.com/wkusnierczyk/spelling-bee-solver/pulls) to contribute content.
+No pushing to `main` is allowed.
+
+### Project structure
+
+```text
+.
+|-- LICENSE
+|-- Makefile
+|-- README.md
+|-- charts/                # Helm charts
+|   `-- ...
+|-- infra/                 # GKE manifests (Ingress, SSL, certs)
+|   `-- ...
+|-- sbs-gui/               # React frontend (Vite + TypeScript)
+|   `-- ...
+|-- sbs-solver/            # Rust backend & trie engine (Actix-web)
+|   `-- ...
+|-- scripts/               # Automation for builds and deployments
+|   `-- ...
+`-- ...                    # Other files
+```
+
+### Workflows
+
 When developing locally, run the GitHub test and integration workflows locally to speed up debugging in case of failure, and saving the remote from polluting commits.
+
 
 Prerequisites:
 
