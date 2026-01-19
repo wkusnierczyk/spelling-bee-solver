@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.backend.fullnameOverride | default (printf "%s-backend" .Release.Name) }}
+  labels:
+    app: sbs-backend
+spec:
+  type: ClusterIP  # Internal only (Nginx talks to this)
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    app: sbs-backend

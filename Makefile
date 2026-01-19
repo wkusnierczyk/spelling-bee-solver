@@ -289,13 +289,13 @@ minikube-start:
 minikube-build: setup-dictionary
 	$(call info, "Pointing Docker to Minikube...")
 	@eval $$(minikube docker-env) && \
-	docker build -t $(SBS_BACKEND_NAME):$(DOCKER_TAG) -f $(SBS_BACKEND_DIR)/Dockerfile $(SBS_BACKEND_DIR) && \
-	docker build -t $(SBS_FRONTEND_NAME):$(DOCKER_TAG) -f $(SBS_FRONTEND_DIR)/Dockerfile $(SBS_FRONTEND_DIR)
+		docker build -t $(SBS_BACKEND_NAME):$(DOCKER_TAG) -f $(SBS_BACKEND_DIR)/Dockerfile $(SBS_BACKEND_DIR) && \
+		docker build -t $(SBS_FRONTEND_NAME):$(DOCKER_TAG) -f $(SBS_FRONTEND_DIR)/Dockerfile $(SBS_FRONTEND_DIR)
 	$(call info, "Images built inside Minikube registry.")
 
 minikube-deploy: minikube-build ## Deploy charts to Minikube
 	$(call info, "Deploying Helm Release $(RELEASE_NAME)...")
-	helm upgrade --install $(RELEASE_NAME) ./charts/sbs-server \
+	helm upgrade --install $(RELEASE_NAME) ./charts/minikube \
 		--namespace $(NAMESPACE) \
 		--create-namespace \
 		--set backend.fullnameOverride=$(SBS_BACKEND_NAME) \
