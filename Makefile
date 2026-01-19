@@ -34,7 +34,7 @@ ifneq (,$(wildcard ./.env))
 endif
 
 
-.PHONY: help test lint format build-backend install-backend run-backend build-frontend run-frontend build-cli install-cli start-local stop-local status deploy-cloud
+.PHONY: help test lint format build-backend install-backend run-backend build-frontend run-frontend build-cli install-cli start-local stop-local status deploy-cloud build-architecture
 
 help: ## Show help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -440,3 +440,11 @@ gcp-test-production: ## Verify the Production URL (sbsolver.ch)
 	@curl -s -L -X POST https://sbsolver.ch/solve \
 		-H "Content-Type: application/json" \
 		-d '{"letters": "abcdefg", "present": "a"}' | grep "result" > /dev/null && echo "   ✅ API is working" || echo "   ⚠️ API check skipped/failed (Ensure /solve is exposed)"
+
+
+generate-diagrams: ## Build all architecture diagrams with mmdc
+	$(call info, "Building architecture diagrams...")
+	@for file in ./architecture/*.mmd; do \
+		echo "Processing $$file..."; \
+		mmdc -i "$$file" -o "$${file%.mmd}.png"; \
+	done

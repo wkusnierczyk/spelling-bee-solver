@@ -1,0 +1,31 @@
+graph TD
+    User((User / Browser))
+    
+    subgraph "Google Cloud Platform"
+        DNS["DNS: [Domain name]"]
+        StaticIP["Static IP [Reserved IP]"]
+        
+        subgraph "Global Load Balancer"
+            Ingress[("GKE Ingress<br/>(Termination & Routing)")]
+        end
+    end
+    
+    subgraph "GKE Cluster [Namespace]"
+        subgraph "Frontend Layer"
+            SvcFront["Service [Frontend]"]
+            PodFront[Pod: Nginx + React]
+        end
+        
+        subgraph "Backend Layer"
+            SvcBack["Service [Backend]"]
+            PodBack[Pod: Rust API]
+        end
+    end
+
+    User -->|HTTPS| DNS
+    DNS -.->|Points to| StaticIP
+    StaticIP --- Ingress
+    Ingress -->|HTTP Request| SvcFront
+    SvcFront -->|Selects| PodFront
+    PodFront -->|Proxy /solve| SvcBack
+    SvcBack -->|Selects| PodBack
