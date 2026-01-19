@@ -7,6 +7,19 @@ It offers a _solver_: a tool for solving Spelling Bee challenges.
 The purpose, of course, is not the cheat the game by copying words over from an automated solver.
 The tool was built as a proof of concept, a BWYN (build what you need) tool for educational purposes, and as an exercise in bui;ding and deploying such tools.
 
+## Contents
+
+- [Deployment options](#deployment-options)
+  - [Using the Rust library](#using-the-rust-library)
+  - [Using the CLI](#using-the-cli)
+  - [Local native deployment](#local-native-deployment)
+  - [Local containerised deployment](#local-containerised-deployment)
+- [Development](#development)
+  - [Project structure](#project-structure)
+  - [Workflows](#workflows)
+  - [Code health](#code-health)
+- [About](#about)
+
 ## Deployment options
 
 The tool can be used as:
@@ -18,7 +31,7 @@ The tool can be used as:
 * [**WIP**] A local k8s (kubernetes) cluster, deployed with minikube.
 * [**WIP**] A cloud service, deployed to GCP (Google Cloud Platform).
 
-## Using the Rust library
+### Using the Rust library
 
 Add the library as a local dependency from this repo:
 
@@ -49,7 +62,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-## Using the CLI
+### Using the CLI
 
 Build the CLI binary:
 
@@ -207,7 +220,6 @@ No pushing to `main` is allowed.
 
 When developing locally, run the GitHub test and integration workflows locally to speed up debugging in case of failure, and saving the remote from polluting commits.
 
-
 Prerequisites:
 
 * [act](https://github.com/nektos/act).
@@ -225,7 +237,9 @@ make ci-compose
 make ci-all
 ```
 
-Other useful make targets:
+### Code health
+
+Use these make targets to maintain clean and healthy code.
 
 ```bash
 # Print available Makefile targets and a short description; no state changes.
