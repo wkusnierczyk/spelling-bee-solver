@@ -111,6 +111,10 @@ sbs --config /path/to/config.json --present a
 
 ### Local native deployment
 
+![Native](architecture/native.png)
+
+Deploy the service natively using the followng make targets.
+
 Build and start the backend and the frontend.
 
 ```bash
@@ -133,6 +137,10 @@ make stop-local
 ```
 
 ### Local deployment with Docker
+
+![Docker](architecture/docker.png)
+
+Deploy the service with Docker using the followng make targets.
 
 Build and use backend image.
 
@@ -182,7 +190,9 @@ make remove-docker-stack
 
 ### Local deployment with Docker Compose
 
-Deploy the stack using Docker Compose
+![Compose](architecture/compose.png)
+
+Deploy the service with Docker Compose using the followng make targets.
 
 ```bash
 # Start the whole stack
@@ -194,7 +204,9 @@ make docker-compose-down
 
 ### Local deployment with Kubernetes and Minikube
 
-Deploy the stack to a local Minikube cluster
+![Minikube](architecture/minikube.png)
+
+Deploy the stack to a local Minikube cluster using the followng make targets.
 
 ```bash
 # Start a local cluster (Docker driver)
@@ -215,6 +227,45 @@ make minikube-clean
 # Stop or delete the Minikube cluster
 make minikube-stop
 make minikube-delete
+```
+
+### Cloud deployment (GCP)
+
+![Cloud](architecture/cloud.png)
+
+Deploy the stack to a GCP (Google Clopud Platform) Kubernetes cluster using the followng make targets.
+
+**Note**  
+Requires `GCP_PROJECT_ID`, `GCP_CLUSTER_NAME`, and `GCP_ZONE` environment variables to be set to appropriate values.
+Check your GCP project for details.
+
+```bash
+# Authenticate kubectl with the target GKE cluster
+make gcp-auth
+
+# Build linux/amd64 images for GKE
+make gcp-build
+
+# Build and push images to GCR
+make gcp-push
+
+# Deploy a candidate release with a temporary LoadBalancer
+make gcp-deploy-candidate
+
+# Smoke-test the candidate LoadBalancer IP
+make gcp-test-candidate
+
+# Promote to production with Ingress enabled
+make gcp-promote
+
+# Remove the candidate release
+make gcp-cleanup
+
+# Full pipeline: auth -> candidate deploy -> test -> promote -> cleanup
+make gcp-deploy
+
+# Verify the production URL (https://sbsolver.ch)
+make gcp-test-production
 ```
 
 ## Development
