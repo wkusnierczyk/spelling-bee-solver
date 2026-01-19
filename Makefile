@@ -301,13 +301,32 @@ minikube-deploy: minikube-build ## Deploy charts to Minikube
 		--set frontend.image.tag=$(DOCKER_TAG) \
 		--set frontend.image.pullPolicy=Never
 
+MINIKUBE_TEST_TIMEOUT = 120s
+minikube-test: ## Verify the Minikube deployment (Wait + Curl)
+	$(call info, "Waiting for Pods to be ready...")
+	@# 1. Wait for Backend
+	@kubectl wait --namespace $(NAMESPACE) \
+		--for=condition=ready pod \
+		--selector=app=$(SBS_BACKEND_NAME) \
+		--timeout=$(MINIKUBE_TEST_TIMEOUT)
+	@# 2. Wait for Frontend
+	@kubectl wait --namespace $(NAMESPACE) \
+		--for=condition=ready pod \
+		--selector=app=$(SBS_FRONTEND_NAME) \
+		--timeout=$(MINIKUBE_TEST_TIMEOUT)
+	$(call info, "Testing Service via Port-Forward...")
+	@# 3. Start a background port-forward to map local 9090 -> Service 80
+	@kubectl port-forward service/$(SBS_FRONTEND_NAME) -n $(NAMESPACE) 9090:80 > /dev/null 2>&1 & \
+	PID=$$!; \
+	sleep 5; \
+	echo "   ...curling http://localhost:9090"; \
+	curl -s --fail http://localhost:9090 | grep "<title>" || (kill $$PID && exit 1); \
+	kill $$PID
+	$(call info, "Minikube Deployment Verified!")
+
 minikube-url: ## Open the frontend URL in the default browser
 	$(call info, "Opening Frontend Service...")
 	minikube service $(SBS_FRONTEND_NAME) -n $(NAMESPACE)
-
-# minikube-mount: ## Mount local data into Minikube (Run in separate terminal)
-# 	$(call info, "Mounting data directory. Keep this terminal open!")
-# 	minikube mount $(PWD)/$(SBS_BACKEND_DIR)/data:/data
 
 minikube-clean: ## Remove the Helm release (leaves cluster running)
 	$(call info, "Uninstalling Release $(RELEASE_NAME)...")
