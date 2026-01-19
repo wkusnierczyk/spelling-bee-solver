@@ -191,7 +191,7 @@ remove-frontend-container: stop-frontend-container ## Stop and then remove the f
 	@docker rm $(SBS_FRONTEND_NAME) >/dev/null 2>&1 || true
 
 
-# --- High Level Orchestration ---
+# --- Docker Orchestration ---
 
 start-docker-stack: setup-dictionary build-backend-image build-frontend-image start-backend-container start-frontend-container
 	@sleep 2
@@ -199,8 +199,8 @@ start-docker-stack: setup-dictionary build-backend-image build-frontend-image st
 	$(call info, "Stack running!")
 
 test-docker-stack: setup-dictionary build-backend-image build-frontend-image start-backend-container start-frontend-container
-	@sleep 5  # Increased sleep slightly for CI environments
-	@make test-frontend-container
+	$(call info, "Verifying Full Docker Stack...")
+	@make fullstack-smoke-test
 	$(call info, "Full Docker Stack is verified and running!")
 
 stop-docker-stack: stop-frontend-container stop-backend-container
@@ -210,7 +210,7 @@ remove-docker-stack: remove-frontend-container remove-backend-container
 	$(call info, "Stack removed.")
 
 
-# --- Docker Compose ---
+# --- Docker Compose Orchestration ---
 
 docker-compose-up: setup-dictionary 
 	$(call info, "Starting stack with Docker Compose...")
@@ -219,10 +219,23 @@ docker-compose-up: setup-dictionary
 	$(call info, "Frontend: http://localhost:5173")
 	$(call info, "Backend:  http://localhost:8080")
 
+docker-compose-test: 
+	$(call info, "Verifying Docker Compose stack...")
+	@make fullstack-smoke-test
+
 docker-compose-down:
 	$(call info, "Stopping Docker Compose stack...")
 	@docker compose down
 
+
+# --- Full Stack Testing ---
+
+fullstack-smoke-test:
+	$(call info, "Running Smoke Tests...")
+	@# Give services a moment to settle (Nginx DNS resolution, etc)
+	@sleep 5 
+	@make test-backend-container
+	@make test-frontend-container
 
 
 
