@@ -212,18 +212,18 @@ remove-docker-stack: remove-frontend-container remove-backend-container
 
 # --- Docker Compose Orchestration ---
 
-docker-compose-up: setup-dictionary 
+start-compose-stack: setup-dictionary 
 	$(call info, "Starting stack with Docker Compose...")
 	@docker compose up -d --build
 	$(call info, "Stack is running.")
 	$(call info, "Frontend: http://localhost:5173")
 	$(call info, "Backend:  http://localhost:8080")
 
-docker-compose-test: 
+test-compose-stack: 
 	$(call info, "Verifying Docker Compose stack...")
 	@make fullstack-smoke-test
 
-docker-compose-down:
+stop-compose-stack:
 	$(call info, "Stopping Docker Compose stack...")
 	@docker compose down
 

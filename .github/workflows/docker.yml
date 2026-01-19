@@ -7,40 +7,37 @@ on:
     branches: [ "main" ]
 
 jobs:
-  docker-smoke-test:
-    name: Build & Smoke Test Stack
+  integration-tests:
+    name: Docker Stack Tests
     runs-on: ubuntu-latest
     
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 1. Setup Data (Uses your existing Makefile logic)
       - name: Setup Dictionary
         run: make setup-dictionary
 
-      # 2. Build & Start Stack (Uses the fixed targets)
-      # This ensures the containers are built and mapped to localhost ports
-      - name: Start Docker Stack
-        run: make start-docker-stack
+      # TEST 1: The "Tight Loop" Workflow (Individual Containers)
+      # This verifies the legacy --link and manual docker run commands
+      - name: Test Individual Containers
+        run: make test-docker-stack
 
-      # 3. Verification (Explicit step for clarity, though test-docker-stack includes it)
-      - name: Verify Backend Health
-        run: curl --fail http://localhost:8080/health || exit 1
+      # TEST 2: The "Full Stack" Workflow (Docker Compose)
+      # This verifies docker-compose.yml, networks, and DNS resolution
+      - name: Test Docker Compose
+        run: make test-compose-stack
 
-      - name: Verify Frontend Proxy
-        run: make test-frontend-container
-
-      # 4. Dump Logs on Failure (Crucial for debugging CI)
+      # Debugging: If anything fails, show us the state of the world
       - name: Dump Docker Logs
         if: failure()
         run: |
-          echo "=== Backend Logs ==="
-          docker logs sbs-backend
-          echo "=== Frontend Logs ==="
-          docker logs sbs-frontend
+          docker compose logs || true
+          docker logs sbs-backend || true
+          docker logs sbs-frontend || true
 
-      # 5. Cleanup
-      - name: Tear Down
+      - name: Cleanup
         if: always()
-        run: make remove-docker-stack
+        run: |
+          make down
+          make remove-docker-stack
