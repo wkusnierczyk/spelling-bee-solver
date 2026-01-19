@@ -31,7 +31,7 @@ path = "src/lib.rs"
 name = "sbs"
 path = "src/main.rs"
 
-# Define the Server binary
+# Define the backend server binary
 [[bin]]
-name = "sbs-server"
+name = "sbs-backend"
 path = "src/bin/server.rs"

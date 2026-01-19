@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./sbs-solver
+        working-directory: ./sbs-backend
     steps:
     - uses: actions/checkout@v3
     - name: Set up Rust
@@ -27,12 +27,12 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ~/.cargo/registry
-        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('sbs-solver/Cargo.lock') }}
+        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('sbs-backend/Cargo.lock') }}
     - name: Cache Cargo build
       uses: actions/cache@v3
       with:
-        path: sbs-solver/target
-        key: ${{ runner.os }}-cargo-build-${{ hashFiles('sbs-solver/Cargo.lock') }}
+        path: sbs-backend/target
+        key: ${{ runner.os }}-cargo-build-${{ hashFiles('sbs-backend/Cargo.lock') }}
     
     - name: Setup Data
       run: ../scripts/setup_dictionary.sh

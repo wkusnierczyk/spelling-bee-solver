@@ -1,0 +1,35 @@
+name: Docker Compose Integration
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  integration-tests:
+    name: Docker Compose Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Dictionary
+        run: make setup-dictionary
+
+      - name: Start Compose Stack
+        run: make start-compose-stack
+
+      - name: Test Docker Compose Stack 
+        run: make test-compose-stack
+
+      - name: Dump Docker Logs
+        if: failure()
+        run: |
+          docker compose logs || true
+
+      - name: Cleanup
+        if: always()
+        run: |
+          make stop-compose-stack

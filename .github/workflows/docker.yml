@@ -1,0 +1,34 @@
+name: Docker Integration
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  integration-tests:
+    name: Docker Fullstack Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Dictionary
+        run: make setup-dictionary
+
+      - name: Test Docker Stack
+        run: make test-docker-stack
+
+      - name: Dump Docker Logs
+        if: failure()
+        run: |
+          docker logs sbs-backend || true
+          docker logs sbs-frontend || true
+
+      - name: Cleanup
+        if: always()
+        run: |
+          make stop-docker-stack
+          make remove-docker-stack
