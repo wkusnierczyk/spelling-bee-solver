@@ -240,33 +240,47 @@ Requires `GCP_PROJECT_ID`, `GCP_CLUSTER_NAME`, and `GCP_ZONE` environment variab
 Check your GCP project for details.
 
 ```bash
-# Authenticate kubectl with the target GKE cluster
+# Authenticate kubectl with the GKE cluster
 make gcp-auth
 
-# Build linux/amd64 images for GKE
+# Build images for Cloud (Force AMD64 for GKE compatibility)
 make gcp-build
 
-# Build and push images to GCR
+# Push images to Google Container Registry
 make gcp-push
 
-# Deploy a candidate release with a temporary LoadBalancer
+# Deploy to staging namespace for testing
 make gcp-deploy-candidate
 
-# Smoke-test the candidate LoadBalancer IP
+# Test the candidate deployment in staging
 make gcp-test-candidate
 
-# Promote to production with Ingress enabled
-make gcp-promote
+# Promote candidate to production (rolling update)
+make gcp-promote-candidate
 
-# Remove the candidate release
-make gcp-cleanup
+# Remove the staging deployment
+make gcp-cleanup-candidate
 
-# Full pipeline: auth -> candidate deploy -> test -> promote -> cleanup
+# Full deployment pipeline
 make gcp-deploy
 
-# Verify the production URL (https://sbsolver.ch)
-make gcp-test-production
+# Show current deployment status
+make gcp-status
+
+# Tail backend logs from production
+make gcp-logs-backend
+
+# Tail frontend logs from production
+make gcp-logs-frontend
+
+# Rollback to previous production release
+make gcp-rollback
+
+# Remove all GCP deployments (DANGEROUS)
+make gcp-destroy
 ```
+
+
 
 ## Development
 
