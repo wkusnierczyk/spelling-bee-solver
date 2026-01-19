@@ -239,7 +239,7 @@ make format
 sbs --about
 
 sbs: Spelling Bee Solver tool
-├─ version:   0.1.2
+├─ version:   0.1.0
 ├─ developer: mailto:waclaw.kusnierczyk@gmail.com
 ├─ source:    https://github.com/wkusnierczyk/ips-sampler
 ├─ licence:   MIT https://opensource.org/licenses/MIT
