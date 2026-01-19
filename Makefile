@@ -296,16 +296,30 @@ minikube-deploy: minikube-build ## Deploy charts to Minikube
 		--set backend.image.repository=$(SBS_BACKEND_NAME) \
 		--set backend.image.tag=$(DOCKER_TAG) \
 		--set backend.image.pullPolicy=Never \
+		--set frontend.fullnameOverride=$(SBS_FRONTEND_NAME) \
 		--set frontend.image.repository=$(SBS_FRONTEND_NAME) \
 		--set frontend.image.tag=$(DOCKER_TAG) \
 		--set frontend.image.pullPolicy=Never
 
-minikube-mount: ## Mount local data into Minikube (Run in separate terminal)
-	$(call info, "Mounting data directory. Keep this terminal open!")
-	minikube mount $(PWD)/$(SBS_BACKEND_DIR)/data:/data
+minikube-url: ## Open the frontend URL in the default browser
+	$(call info, "Opening Frontend Service...")
+	minikube service $(SBS_FRONTEND_NAME) -n $(NAMESPACE)
 
+# minikube-mount: ## Mount local data into Minikube (Run in separate terminal)
+# 	$(call info, "Mounting data directory. Keep this terminal open!")
+# 	minikube mount $(PWD)/$(SBS_BACKEND_DIR)/data:/data
 
+minikube-clean: ## Remove the Helm release (leaves cluster running)
+	$(call info, "Uninstalling Release $(RELEASE_NAME)...")
+	helm uninstall $(RELEASE_NAME) -n $(NAMESPACE) || true
 
+minikube-stop: ## Stop the Minikube cluster (saves resources)
+	$(call info, "Stopping Minikube...")
+	minikube stop
+
+minikube-delete: ## Nuke the Minikube cluster (fresh start)
+	$(call info, "Deleting Minikube Cluster...")
+	minikube delete
 
 
 
