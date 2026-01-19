@@ -5,16 +5,21 @@ backend:
   image:
     repository: sbs-solver
     tag: "latest"
+    pullPolicy: IfNotPresent
+  # Standardizing naming override usage
+  fullnameOverride: ""
   service:
-    type: NodePort
-    port: 80
+    type: ClusterIP
+    port: 8080
     targetPort: 8080
 
 frontend:
   image:
     repository: sbs-gui
-    pullPolicy: Always 
-    tag: "v2-react"
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  # Standardizing naming override usage
+  fullnameOverride: ""
   service:
     type: NodePort
     port: 80
@@ -27,3 +32,16 @@ resources:
   requests:
     cpu: 100m
     memory: 128Mi
+
+ingress:
+  enabled: true
+  className: "gce" # Standard for Google Kubernetes Engine
+  annotations:
+    # networking.gke.io/managed-certificates: "sbs-certificate"
+    # kubernetes.io/ingress.global-static-ip-name: "sbs-ip"
+  hosts:
+    - host: sbsolver.ch
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []

@@ -22,7 +22,7 @@ FRONTEND_PID = .frontend.pid
 # Containerisation
 DOCKER_TAG ?= latest
 
-# Conenience function for info messages
+# Convenience function for info messages
 define info
 	@printf "\033[36m[DIAG] %s\033[0m\n" $(1) >&2
 endef
@@ -34,7 +34,7 @@ ifneq (,$(wildcard ./.env))
 endif
 
 
-.PHONY: help test lint format build-backend install-backend run-backend build-frontend run-frontend build-cli install-cli start-local stop-local status
+.PHONY: help test lint format build-backend install-backend run-backend build-frontend run-frontend build-cli install-cli start-local stop-local status deploy-cloud
 
 help: ## Show help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -84,11 +84,11 @@ build-backend:
 
 install-backend: build-backend
 	$(call info, "Installing backend...")
-	d $(SBS_BACKEND_DIR) && cargo install --path . --bin $(SBS_BACKEND_NAME) --force
+	cd $(SBS_BACKEND_DIR) && cargo install --path . --bin $(SBS_BACKEND_NAME) --force
 
 start-backend: install-backend
 	$(call info, "Starting backend...")
-	cd $(SBS_BACKEND_DIR) && BS_DICT=$(SBS_DICT) $(SBS_BACKEND_NAME)
+	cd $(SBS_BACKEND_DIR) && SBS_DICT=$(SBS_DICT) $(SBS_BACKEND_NAME)
 
 
 # --- Frontend Management ---
@@ -312,12 +312,12 @@ minikube-test: ## Verify the Minikube deployment (Wait + Curl)
 	$(call info, "Waiting for Pods to be ready...")
 	@kubectl wait --namespace $(NAMESPACE) --for=condition=ready pod --selector=app=$(SBS_BACKEND_NAME) --timeout=$(MINIKUBE_TEST_TIMEOUT)
 	@kubectl wait --namespace $(NAMESPACE) --for=condition=ready pod --selector=app=$(SBS_FRONTEND_NAME) --timeout=$(MINIKUBE_TEST_TIMEOUT)
-
+	
 	$(call info, "1. Testing Frontend Static Content (Port-Forward)...")
 	@kubectl port-forward service/$(SBS_FRONTEND_NAME) -n $(NAMESPACE) 9090:80 > /dev/null 2>&1 & \
 	PID=$$!; \
 	sleep 5; \
-	curl -s --fail http://localhost:9090 | grep "<title>" && echo "   ✅ Static content served" || (kill $$PID && exit 1); \
+	curl -s --fail http://localhost:9090 | grep "<title>" && echo "   Static content served" || (kill $$PID && exit 1); \
 	kill $$PID
 
 	$(call info, "2. Testing Frontend -> Backend Connectivity (Internal)...")
@@ -325,7 +325,9 @@ minikube-test: ## Verify the Minikube deployment (Wait + Curl)
 	@# 'wget --spider' returns exit code 0 if the server returns 200 OK
 	@kubectl exec -n $(NAMESPACE) deployment/$(RELEASE_NAME)-frontend -- \
 		wget -q --spider http://$(SBS_BACKEND_NAME):8080/health && \
-		echo "   ✅ Backend reachable from Frontend"
+		echo "   Backend reachable from Frontend" && \
+		echo "" && \
+		echo "Full Stack Verified!"
 
 
 minikube-url: ## Open the frontend URL in the default browser
@@ -363,65 +365,59 @@ gcp-push: gcp-build ## Push images to Google Container Registry
 	docker push $(GCP_REGISTRY)/$(SBS_BACKEND_NAME):$(CLOUD_TAG)
 	docker push $(GCP_REGISTRY)/$(SBS_FRONTEND_NAME):$(CLOUD_TAG)
 
-gcp-deploy-candidate: gcp-push ## Deploy a temporary 'candidate' release to test
+gcp-deploy-candidate: gcp-push ## Deploy Candidate: No Ingress, Use LoadBalancer for testing
 	$(call info, "Deploying Candidate Release (sbs-candidate)...")
+	@# Strategy: We force type=LoadBalancer to get a temporary IP for testing
 	helm upgrade --install sbs-candidate ./charts/sbs-server \
 		--namespace $(NAMESPACE) \
 		--create-namespace \
+		--set backend.fullnameOverride=sbs-candidate-backend \
+		--set frontend.fullnameOverride=sbs-candidate-frontend \
 		--set backend.image.repository=$(GCP_REGISTRY)/$(SBS_BACKEND_NAME) \
 		--set backend.image.tag=$(CLOUD_TAG) \
 		--set frontend.image.repository=$(GCP_REGISTRY)/$(SBS_FRONTEND_NAME) \
 		--set frontend.image.tag=$(CLOUD_TAG) \
+		--set ingress.enabled=false \
+		--set frontend.service.type=LoadBalancer \
 		--wait
 
-gcp-test-candidate: ## Run Smoke Tests against the Candidate Release
-	$(call info, "Waiting for Candidate IP...")
+gcp-test-candidate: ## Run Smoke Tests against the Candidate IP
+	$(call info, "Waiting for Candidate Public IP...")
 	@IP=""; \
 	count=0; \
 	while [ -z "$$IP" ]; do \
 		IP=$$(kubectl get svc -n $(NAMESPACE) sbs-candidate-frontend -o jsonpath='{.status.loadBalancer.ingress[0].ip}'); \
 		if [ -z "$$IP" ]; then \
 			echo "   ...waiting for LoadBalancer IP ($$count/60)"; \
-			sleep 2; \
+			sleep 5; \
 			count=$$((count+1)); \
 			if [ $$count -ge 60 ]; then echo "Timeout getting IP"; exit 1; fi; \
 		fi; \
 	done; \
 	echo "Candidate IP: $$IP"; \
 	echo "Running Smoke Test..."; \
-	curl -s --fail "http://$$IP" | grep "<title>" && echo "✅ Candidate is Healthy" || exit 1
+	# Retrying curl a few times as LBs can take a moment to warm up
+	for i in {1..5}; do curl -s --fail "http://$$IP" | grep "<title>" && break || sleep 5; done
 
-gcp-promote: ## Apply the tested images to Production (Rolling Update)
+gcp-promote: ## Promote to Prod: Enable Ingress, Use NodePort (Standard)
 	$(call info, "Promoting to Production (sbs-prod)...")
 	helm upgrade --install $(RELEASE_NAME) ./charts/sbs-server \
 		--namespace $(NAMESPACE) \
 		--create-namespace \
+		--set backend.fullnameOverride=$(SBS_BACKEND_NAME) \
+		--set frontend.fullnameOverride=$(SBS_FRONTEND_NAME) \
 		--set backend.image.repository=$(GCP_REGISTRY)/$(SBS_BACKEND_NAME) \
 		--set backend.image.tag=$(CLOUD_TAG) \
 		--set frontend.image.repository=$(GCP_REGISTRY)/$(SBS_FRONTEND_NAME) \
 		--set frontend.image.tag=$(CLOUD_TAG) \
+		--set ingress.enabled=true \
+		--set frontend.service.type=NodePort \
 		--wait
-	$(call info, "🚀 Production Updated Successfully!")
+	$(call info, "🚀 Production Updated Successfully! Checking Ingress...")
+	@kubectl get ingress -n $(NAMESPACE)
 
 gcp-cleanup: ## Remove the candidate deployment
 	$(call info, "Removing Candidate Release...")
 	helm uninstall sbs-candidate -n $(NAMESPACE) || true
 
-gcp-deploy: \
-	gcp-auth \
-	gcp-deploy-candidate \
-	gcp-test-candidate \
-	gcp-promote \
-	gcp-cleanup
-
-
-
-
-
-# --- Cloud/Infra (Preserved) ---
-
-status: ## Check Cloud Health
-	kubectl get ingress,pods -n $(NAMESPACE)
-
-deploy: ## Build and Push to Cloud (GCP)
-	./scripts/deploy_gcp.sh
+deploy-cloud: gcp-auth gcp-deploy-candidate gcp-test-candidate gcp-promote gcp-cleanup ## Run the full safe deployment pipeline
