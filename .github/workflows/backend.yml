@@ -34,11 +34,9 @@ jobs:
       with:
         path: sbs-backend/target
         key: ${{ runner.os }}-cargo-build-${{ hashFiles('sbs-backend/Cargo.lock') }}
-    
     - name: Setup Data
       working-directory: .
       run: make setup-dictionary
-
     - name: Build
       run: cargo build --verbose
     - name: Run tests

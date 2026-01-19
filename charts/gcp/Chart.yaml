@@ -1,6 +1,6 @@
 apiVersion: v2
 name: sbs-gcp
-description: GKE-specific Helm chart for Spelling Bee Solver
+description: GKE Helm chart for Spelling Bee Solver
 type: application
 version: 1.0.0
 appVersion: "1.0.0"

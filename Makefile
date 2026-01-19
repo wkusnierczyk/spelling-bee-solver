@@ -47,7 +47,6 @@ setup-dictionary: ## Force download of the dictionary (overwrites if exists)
 	$(call info, "Downloading fresh dictionary to $(SBS_DICT)...")
 	@mkdir -p $(dir $(SBS_DICT))
 	@curl -L -o $(SBS_DICT) $(DICT_URL) || (rm -f $(SBS_DICT) && exit 1)
-	$(call info, "Dictionary downloaded successfully.")
 
 
 # --- Hygiene & Testing ---
@@ -351,12 +350,16 @@ minikube-delete: ## Nuke the Minikube cluster (fresh start)
 
 GCP_REGISTRY = gcr.io/$(GCP_PROJECT_ID)
 CLOUD_TAG ?= $(shell git rev-parse --short HEAD)
+NAMESPACE = sbs-namespace
+STAGING_NAMESPACE = sbs-staging
+RELEASE_NAME = sbs-prod
+STAGING_RELEASE_NAME = sbs-staging
 
 gcp-auth: ## Authenticate kubectl with the GKE cluster
 	gcloud container clusters get-credentials $(GCP_CLUSTER_NAME) --zone $(GCP_ZONE) --project $(GCP_PROJECT_ID)
 
 gcp-build: ## Build images for Cloud (Force AMD64 for GKE compatibility)
-	$(call info, "Building Cloud Images (linux/amd64)...")
+	$(call info, "Building Cloud Images (linux/amd64) with tag $(CLOUD_TAG)...")
 	docker build --platform linux/amd64 -t $(GCP_REGISTRY)/$(SBS_BACKEND_NAME):$(CLOUD_TAG) -f $(SBS_BACKEND_DIR)/Dockerfile $(SBS_BACKEND_DIR)
 	docker build --platform linux/amd64 -t $(GCP_REGISTRY)/$(SBS_FRONTEND_NAME):$(CLOUD_TAG) -f $(SBS_FRONTEND_DIR)/Dockerfile $(SBS_FRONTEND_DIR)
 
@@ -364,6 +367,128 @@ gcp-push: gcp-build ## Push images to Google Container Registry
 	$(call info, "Pushing images to GCR...")
 	docker push $(GCP_REGISTRY)/$(SBS_BACKEND_NAME):$(CLOUD_TAG)
 	docker push $(GCP_REGISTRY)/$(SBS_FRONTEND_NAME):$(CLOUD_TAG)
+
+gcp-deploy-candidate: gcp-push ## Deploy to staging namespace for testing
+	$(call info, "Deploying candidate to staging namespace...")
+	helm upgrade --install $(STAGING_RELEASE_NAME) ./charts/gcp \
+		--namespace $(STAGING_NAMESPACE) \
+		--create-namespace \
+		--set backend.image.tag=$(CLOUD_TAG) \
+		--set frontend.image.tag=$(CLOUD_TAG) \
+		--set ingress.enabled=false \
+		--set certificate.enabled=false \
+		--set frontend.service.type=LoadBalancer \
+		--wait --timeout=5m
+	$(call info, "Candidate deployed to staging namespace")
+
+gcp-test-candidate: ## Test the candidate deployment in staging
+	$(call info, "Waiting for staging LoadBalancer IP...")
+	@IP=""; \
+	count=0; \
+	while [ -z "$$IP" ]; do \
+		IP=$$(kubectl get svc -n $(STAGING_NAMESPACE) sbs-frontend -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null); \
+		if [ -z "$$IP" ]; then \
+			echo "   ...waiting for LoadBalancer IP ($$count/60)"; \
+			sleep 5; \
+			count=$$((count+1)); \
+			if [ $$count -ge 60 ]; then echo "Timeout getting IP"; exit 1; fi; \
+		fi; \
+	done; \
+	echo "Staging IP: $$IP"; \
+	echo ""; \
+	echo "1. Testing Frontend Static Content..."; \
+	for i in 1 2 3 4 5; do \
+		if curl -s --fail "http://$$IP" | grep -q "<title>"; then \
+			echo "   ✅ Frontend serving content"; \
+			break; \
+		fi; \
+		echo "   ...retrying ($$i/5)"; \
+		sleep 5; \
+	done; \
+	echo ""; \
+	echo "2. Testing Backend API via Frontend Proxy..."; \
+	RESULT=$$(curl -s -X POST "http://$$IP/solve" \
+		-H "Content-Type: application/json" \
+		-d '{"letters": "pelniga", "present": "a"}'); \
+	if echo "$$RESULT" | grep -q "appeal\|alpine"; then \
+		echo "   ✅ Backend API responding correctly"; \
+	else \
+		echo "   ❌ Backend API test failed"; \
+		echo "   Response: $$RESULT"; \
+		exit 1; \
+	fi; \
+	echo ""; \
+	echo "✅ All candidate tests passed!"
+
+gcp-promote-candidate: ## Promote candidate to production (rolling update)
+	$(call info, "Promoting candidate to production...")
+	helm upgrade --install $(RELEASE_NAME) ./charts/gcp \
+		--namespace $(NAMESPACE) \
+		--create-namespace \
+		--set backend.image.tag=$(CLOUD_TAG) \
+		--set frontend.image.tag=$(CLOUD_TAG) \
+		--set ingress.enabled=true \
+		--set certificate.enabled=true \
+		--set frontend.service.type=NodePort \
+		--wait --timeout=5m
+	$(call info, "Production updated with rolling deployment")
+	@kubectl get ingress -n $(NAMESPACE)
+
+gcp-cleanup-candidate: ## Remove the staging deployment
+	$(call info, "Cleaning up staging namespace...")
+	helm uninstall $(STAGING_RELEASE_NAME) -n $(STAGING_NAMESPACE) 2>/dev/null || true
+	kubectl delete namespace $(STAGING_NAMESPACE) --ignore-not-found=true
+	$(call info, "Staging cleaned up")
+
+gcp-deploy: gcp-auth gcp-deploy-candidate gcp-test-candidate gcp-promote-candidate gcp-cleanup-candidate ## Full deployment pipeline
+	$(call info, "🚀 Deployment complete!")
+
+gcp-status: ## Show current deployment status
+	$(call info, "Production namespace ($(NAMESPACE)):")
+	@kubectl get pods,svc,ingress -n $(NAMESPACE) 2>/dev/null || echo "   No resources found"
+	@echo ""
+	$(call info, "Staging namespace ($(STAGING_NAMESPACE)):")
+	@kubectl get pods,svc -n $(STAGING_NAMESPACE) 2>/dev/null || echo "   No resources found"
+	@echo ""
+	$(call info, "Managed Certificate:")
+	@kubectl get managedcertificate -n $(NAMESPACE) 2>/dev/null || echo "   No certificate found"
+
+gcp-logs-backend: ## Tail backend logs from production
+	kubectl logs -f -n $(NAMESPACE) -l app=sbs-backend --all-containers
+
+gcp-logs-frontend: ## Tail frontend logs from production
+	kubectl logs -f -n $(NAMESPACE) -l app=sbs-frontend --all-containers
+
+gcp-rollback: ## Rollback to previous production release
+	$(call info, "Rolling back production deployment...")
+	helm rollback $(RELEASE_NAME) -n $(NAMESPACE)
+	$(call info, "Rollback complete")
+
+gcp-destroy: ## Remove all GCP deployments (DANGEROUS)
+	$(call info, "Destroying all deployments...")
+	helm uninstall $(RELEASE_NAME) -n $(NAMESPACE) 2>/dev/null || true
+	helm uninstall $(STAGING_RELEASE_NAME) -n $(STAGING_NAMESPACE) 2>/dev/null || true
+	kubectl delete namespace $(STAGING_NAMESPACE) --ignore-not-found=true
+	$(call info, "All deployments removed")
+
+
+# # --- Cloud / GCP Orchestration ---
+
+# GCP_REGISTRY = gcr.io/$(GCP_PROJECT_ID)
+# CLOUD_TAG ?= $(shell git rev-parse --short HEAD)
+
+# gcp-auth: ## Authenticate kubectl with the GKE cluster
+# 	gcloud container clusters get-credentials $(GCP_CLUSTER_NAME) --zone $(GCP_ZONE) --project $(GCP_PROJECT_ID)
+
+# gcp-build: ## Build images for Cloud (Force AMD64 for GKE compatibility)
+# 	$(call info, "Building Cloud Images (linux/amd64)...")
+# 	docker build --platform linux/amd64 -t $(GCP_REGISTRY)/$(SBS_BACKEND_NAME):$(CLOUD_TAG) -f $(SBS_BACKEND_DIR)/Dockerfile $(SBS_BACKEND_DIR)
+# 	docker build --platform linux/amd64 -t $(GCP_REGISTRY)/$(SBS_FRONTEND_NAME):$(CLOUD_TAG) -f $(SBS_FRONTEND_DIR)/Dockerfile $(SBS_FRONTEND_DIR)
+
+# gcp-push: gcp-build ## Push images to Google Container Registry
+# 	$(call info, "Pushing images to GCR...")
+# 	docker push $(GCP_REGISTRY)/$(SBS_BACKEND_NAME):$(CLOUD_TAG)
+# 	docker push $(GCP_REGISTRY)/$(SBS_FRONTEND_NAME):$(CLOUD_TAG)
 
 # gcp-deploy-candidate: gcp-push ## Deploy Candidate: No Ingress, Use LoadBalancer for testing
 # 	$(call info, "Deploying Candidate Release (sbs-candidate)...")
@@ -379,32 +504,32 @@ gcp-push: gcp-build ## Push images to Google Container Registry
 # 		--set ingress.enabled=false \
 # 		--wait
 
-gcp-deploy-candidate: gcp-push
-    @helm upgrade --install sbs-candidate ./charts/gcp \
-        --namespace $(NAMESPACE) \
-        --set ingress.enabled=false \
-        --set frontend.service.type=LoadBalancer \
-        --set backend.image.tag=$(CLOUD_TAG) \
-        --set frontend.image.tag=$(CLOUD_TAG) \
-        --wait
+# gcp-deploy-candidate: gcp-push
+#     @helm upgrade --install sbs-candidate ./charts/gcp \
+#         --namespace $(NAMESPACE) \
+#         --set ingress.enabled=false \
+#         --set frontend.service.type=LoadBalancer \
+#         --set backend.image.tag=$(CLOUD_TAG) \
+#         --set frontend.image.tag=$(CLOUD_TAG) \
+#         --wait
 
-gcp-test-candidate: ## Run Smoke Tests against the Candidate IP
-	$(call info, "Waiting for Candidate Public IP...")
-	@IP=""; \
-	count=0; \
-	while [ -z "$$IP" ]; do \
-		IP=$$(kubectl get svc -n $(NAMESPACE) sbs-candidate-frontend -o jsonpath='{.status.loadBalancer.ingress[0].ip}'); \
-		if [ -z "$$IP" ]; then \
-			echo "   ...waiting for LoadBalancer IP ($$count/60)"; \
-			sleep 5; \
-			count=$$((count+1)); \
-			if [ $$count -ge 60 ]; then echo "Timeout getting IP"; exit 1; fi; \
-		fi; \
-	done; \
-	echo "Candidate IP: $$IP"; \
-	echo "Running Smoke Test..."; \
-	# Retrying curl a few times as LBs can take a moment to warm up
-	for i in {1..5}; do curl -s --fail "http://$$IP" | grep "<title>" && break || sleep 5; done
+# gcp-test-candidate: ## Run Smoke Tests against the Candidate IP
+# 	$(call info, "Waiting for Candidate Public IP...")
+# 	@IP=""; \
+# 	count=0; \
+# 	while [ -z "$$IP" ]; do \
+# 		IP=$$(kubectl get svc -n $(NAMESPACE) sbs-candidate-frontend -o jsonpath='{.status.loadBalancer.ingress[0].ip}'); \
+# 		if [ -z "$$IP" ]; then \
+# 			echo "   ...waiting for LoadBalancer IP ($$count/60)"; \
+# 			sleep 5; \
+# 			count=$$((count+1)); \
+# 			if [ $$count -ge 60 ]; then echo "Timeout getting IP"; exit 1; fi; \
+# 		fi; \
+# 	done; \
+# 	echo "Candidate IP: $$IP"; \
+# 	echo "Running Smoke Test..."; \
+# 	# Retrying curl a few times as LBs can take a moment to warm up
+# 	for i in {1..5}; do curl -s --fail "http://$$IP" | grep "<title>" && break || sleep 5; done
 
 # gcp-promote: ## Promote to Prod: Enable Ingress, Use NodePort (Standard)
 # 	$(call info, "Promoting to Production (sbs-prod)...")
@@ -423,40 +548,40 @@ gcp-test-candidate: ## Run Smoke Tests against the Candidate IP
 # 	$(call info, "🚀 Production Updated Successfully! Checking Ingress...")
 # 	@kubectl get ingress -n $(NAMESPACE)
 
-gcp-promote:
-	$(call info, "Promoting to Production...")
-	@helm upgrade --install sbs-prod ./charts/gcp \
-		--namespace $(NAMESPACE) \
-		--set ingress.enabled=true \
-		--set frontend.service.type=NodePort \
-		--set backend.image.tag=$(CLOUD_TAG) \
-		--set frontend.image.tag=$(CLOUD_TAG) \
-		--wait
-		
-gcp-cleanup: ## Remove the candidate deployment
-	$(call info, "Removing Candidate Release...")
-	helm uninstall sbs-candidate -n $(NAMESPACE) || true
+# gcp-promote:
+# 	$(call info, "Promoting to Production...")
+# 	@helm upgrade --install sbs-prod ./charts/gcp \
+# 		--namespace $(NAMESPACE) \
+# 		--set ingress.enabled=true \
+# 		--set frontend.service.type=NodePort \
+# 		--set backend.image.tag=$(CLOUD_TAG) \
+# 		--set frontend.image.tag=$(CLOUD_TAG) \
+# 		--wait
 
-gcp-deploy: \
-	gcp-auth \
-	gcp-deploy-candidate \
-	gcp-test-candidate \
-	gcp-promote \
-	gcp-cleanup
+# gcp-cleanup: ## Remove the candidate deployment
+# 	$(call info, "Removing Candidate Release...")
+# 	helm uninstall sbs-candidate -n $(NAMESPACE) || true
 
-gcp-test-production: ## Verify the Production URL (sbsolver.ch)
-	$(call info, "Verifying Production (https://sbsolver.ch)...")
-	@# 1. Check HTTP 200 OK (Follow redirects)
-	@curl -s -L --fail -o /dev/null -w "%{http_code}" https://sbsolver.ch | grep 200 > /dev/null && echo "   ✅ Site is reachable (200 OK)" || (echo "   ❌ Site Unreachable" && exit 1)
+# gcp-deploy: \
+# 	gcp-auth \
+# 	gcp-deploy-candidate \
+# 	gcp-test-candidate \
+# 	gcp-promote \
+# 	gcp-cleanup
+
+# gcp-test-production: ## Verify the Production URL (sbsolver.ch)
+# 	$(call info, "Verifying Production (https://sbsolver.ch)...")
+# 	@# 1. Check HTTP 200 OK (Follow redirects)
+# 	@curl -s -L --fail -o /dev/null -w "%{http_code}" https://sbsolver.ch | grep 200 > /dev/null && echo "   ✅ Site is reachable (200 OK)" || (echo "   ❌ Site Unreachable" && exit 1)
 	
-	@# 2. Check Content
-	@curl -s -L https://sbsolver.ch | grep "<title>Spelling Bee Solver</title>" > /dev/null && echo "   ✅ Content verified" || (echo "   ❌ Wrong Content" && exit 1)
+# 	@# 2. Check Content
+# 	@curl -s -L https://sbsolver.ch | grep "<title>Spelling Bee Solver</title>" > /dev/null && echo "   ✅ Content verified" || (echo "   ❌ Wrong Content" && exit 1)
 	
-	@# 3. Check API Connectivity (via Frontend proxy)
-	@# Note: This assumes your frontend proxies /solve to the backend correctly
-	@curl -s -L -X POST https://sbsolver.ch/solve \
-		-H "Content-Type: application/json" \
-		-d '{"letters": "abcdefg", "present": "a"}' | grep "result" > /dev/null && echo "   ✅ API is working" || echo "   ⚠️ API check skipped/failed (Ensure /solve is exposed)"
+# 	@# 3. Check API Connectivity (via Frontend proxy)
+# 	@# Note: This assumes your frontend proxies /solve to the backend correctly
+# 	@curl -s -L -X POST https://sbsolver.ch/solve \
+# 		-H "Content-Type: application/json" \
+# 		-d '{"letters": "abcdefg", "present": "a"}' | grep "result" > /dev/null && echo "   ✅ API is working" || echo "   ⚠️ API check skipped/failed (Ensure /solve is exposed)"
 
 
 generate-diagrams: ## Build all architecture diagrams with mmdc
