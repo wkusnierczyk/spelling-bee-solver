@@ -294,6 +294,22 @@ ci-compose: ## Run Docker Compose workflow locally
 	$(call info, "Running Docker Compose Workflow locally...")
 	act -W .github/workflows/compose.yml --container-architecture linux/amd64
 
+ci-minikube: ## Run Minikube workflow locally
+	$(call info, "Running Minikube Workflow locally...")
+	act -W .github/workflows/minikube.yml \
+		--container-architecture linux/amd64 \
+		--platform ubuntu-latest=catthehacker/ubuntu:act-latest \
+		--bind \
+		--reuse
+
+ci-gcp: ## Run GCP workflow locally
+	$(call info, "Running GCP Workflow locally...")
+	act -W .github/workflows/gcp.yml \
+		--container-architecture linux/amd64 \
+		--platform ubuntu-latest=catthehacker/ubuntu:act-latest \
+		--bind \
+		--reuse
+
 ci-all: ## Run all workflows locally
 	act --container-architecture linux/amd64
 

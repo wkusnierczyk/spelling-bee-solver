@@ -23,6 +23,7 @@ jobs:
         components: clippy
     
     - name: Cache Cargo
+      if: ${{ !env.ACT }}
       uses: actions/cache@v4
       with:
         path: |
