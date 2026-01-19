@@ -420,4 +420,9 @@ gcp-cleanup: ## Remove the candidate deployment
 	$(call info, "Removing Candidate Release...")
 	helm uninstall sbs-candidate -n $(NAMESPACE) || true
 
-deploy-cloud: gcp-auth gcp-deploy-candidate gcp-test-candidate gcp-promote gcp-cleanup ## Run the full safe deployment pipeline
+gcp-deploy: \
+	gcp-auth \
+	gcp-deploy-candidate \
+	gcp-test-candidate \
+	gcp-promote \
+	gcp-cleanup
