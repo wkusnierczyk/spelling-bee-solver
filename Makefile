@@ -274,6 +274,40 @@ ci-all: ## Run all workflows locally
 	act --container-architecture linux/amd64
 
 
+# --- Minikube Targets ---
+
+minikube-start:
+	$(call info, "Starting Minikube...")
+	minikube start --driver=docker
+
+minikube-build: setup-dictionary
+	$(call info, "Pointing Docker to Minikube...")
+	@eval $$(minikube docker-env) && \
+	docker build -t $(SBS_BACKEND_NAME):$(DOCKER_TAG) -f $(SBS_BACKEND_DIR)/Dockerfile $(SBS_BACKEND_DIR) && \
+	docker build -t $(SBS_FRONTEND_NAME):$(DOCKER_TAG) -f $(SBS_FRONTEND_DIR)/Dockerfile $(SBS_FRONTEND_DIR)
+	$(call info, "Images built inside Minikube registry.")
+
+minikube-deploy: minikube-build ## Deploy charts to Minikube
+	$(call info, "Deploying Helm Release $(RELEASE_NAME)...")
+	helm upgrade --install $(RELEASE_NAME) ./charts/sbs-server \
+		--namespace $(NAMESPACE) \
+		--create-namespace \
+		--set backend.image.repository=$(SBS_BACKEND_NAME) \
+		--set backend.image.tag=$(DOCKER_TAG) \
+		--set backend.image.pullPolicy=Never \
+		--set frontend.image.repository=$(SBS_FRONTEND_NAME) \
+		--set frontend.image.tag=$(DOCKER_TAG) \
+		--set frontend.image.pullPolicy=Never
+
+minikube-mount: ## Mount local data into Minikube (Run in separate terminal)
+	$(call info, "Mounting data directory. Keep this terminal open!")
+	minikube mount $(PWD)/$(SBS_BACKEND_DIR)/data:/data
+
+
+
+
+
+
 
 
 # --- Cloud/Infra (Preserved) ---
