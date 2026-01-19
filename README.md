@@ -218,25 +218,20 @@ make ci-all
 
 Other useful make targets:
 
-- Print available Makefile targets and a short description; no state changes.
-  ```bash
-  make help
-  ```
+```bash
+# Print available Makefile targets and a short description; no state changes.
+make help
 
-- Run backend unit and integration tests; local only.
-  ```bash
-  make test
-  ```
+# Run backend unit and integration tests; local only.
+make test
 
-- Run clippy linter on backend; local only.
-  ```bash
-  make lint
-  ```
+# Run clippy linter on backend; local only.
+make lint
 
-- Format backend code using rustfmt; local only.
-  ```bash
-  make format
-  ```
+# Format backend code using rustfmt; local only.
+make format
+```
+---
 
 ## About
 
