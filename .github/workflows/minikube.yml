@@ -16,32 +16,34 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 1. Spin up a headless Minikube cluster inside the runner
       - name: Start Minikube
         uses: medyagh/setup-minikube@master
         with:
           driver: docker
           cache: true
 
-      # 2. Setup (Download Dict)
       - name: Setup Dictionary
         run: make setup-dictionary
 
-      # 3. Build & Deploy (Uses your Makefile logic)
       - name: Build & Deploy
         run: |
-          # Point shell to Minikube's Docker daemon
           eval $(minikube docker-env)
           make minikube-deploy
 
-      # 4. Run the Test Target (Wait -> Port-Forward -> Curl -> Exec)
       - name: Run Integration Tests
         run: make minikube-test
 
-      # 5. Debug Logs (Only runs if the test fails)
       - name: Dump Pod Status
         if: failure()
         run: |
+          echo "=== POD STATUS ==="
           kubectl get pods -n sbs-namespace
-          kubectl logs -n sbs-namespace -l app=sbs-frontend --tail=50
-          kubectl logs -n sbs-namespace -l app=sbs-backend --tail=50
+          
+          echo "=== POD EVENTS (Describe) ==="
+          # 'describe' is better for startup errors (ImagePullBackOff, Init failures)
+          kubectl describe pods -n sbs-namespace
+          
+          echo "=== LOGS ==="
+          # --all-containers gets Init logs too. '|| true' prevents crash if pod isn't ready.
+          kubectl logs -n sbs-namespace -l app=sbs-frontend --all-containers=true --tail=50 || true
+          kubectl logs -n sbs-namespace -l app=sbs-backend --all-containers=true --tail=50 || true
