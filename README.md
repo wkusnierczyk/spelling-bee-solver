@@ -280,6 +280,37 @@ make gcp-rollback
 make gcp-destroy
 ```
 
+#### Cloud cost management
+
+To avoid excessive charges when the cloud service is not in use, scale down or stop the cluster.
+
+**Option A**  
+Scale to zero (stops _compute_ costs).
+The Load Balancer remains active (~$18/mo), but CPU/RAM incur no costs.
+
+```bash
+# STOP
+kubectl scale deployment sbs-prod-backend --replicas=0 -n sbs-namespace
+kubectl scale deployment sbs-prod-frontend --replicas=0 -n sbs-namespace
+
+# START (Back Up)
+kubectl scale deployment sbs-prod-backend --replicas=1 -n sbs-namespace
+kubectl scale deployment sbs-prod-frontend --replicas=1 -n sbs-namespace
+```
+
+**Option B**  
+Delete ingress (stops _load balancer_ costs).
+Use for long-term breaks.
+
+```bash
+# STOP
+kubectl delete -f infra/sbs-ingress.yaml
+
+# START
+kubectl apply -f infra/sbs-ingress.yaml
+```
+
+
 
 
 ## Development
