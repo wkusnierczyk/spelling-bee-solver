@@ -9,6 +9,14 @@ permissions:
   contents: write # Required to create releases
 
 jobs:
+
+  gate-backend:
+    uses: ./.github/workflows/backend.yml
+  gate-docker:
+    uses: ./.github/workflows/docker.yml
+  gate-compose:
+    uses: ./.github/workflows/compose.yml
+
   # 1. Create the Draft Release immediately
   create-draft:
     name: Create Draft Release
@@ -68,7 +76,7 @@ jobs:
           
           # Verify
           grep "version =" sbs-backend/Cargo.toml
-          
+
       - name: Build Release
         run: |
           cd sbs-backend
