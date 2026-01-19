@@ -13,6 +13,8 @@ spec:
     metadata:
       labels:
         app: sbs-frontend
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/frontend-config.yaml") . | sha256sum }}
     spec:
       initContainers:
         - name: wait-for-backend
@@ -21,14 +23,21 @@ spec:
             - 'sh'
             - '-c'
             - 'until nslookup {{ .Values.backend.fullnameOverride | default (printf "%s-backend" .Release.Name) }}.$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace).svc.cluster.local; do echo waiting for backend; sleep 2; done'
-      
       containers:
         - name: frontend
           image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
           ports:
             - name: http
               containerPort: 80
               protocol: TCP
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: {{ .Release.Name }}-frontend-config

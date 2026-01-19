@@ -426,3 +426,17 @@ gcp-deploy: \
 	gcp-test-candidate \
 	gcp-promote \
 	gcp-cleanup
+
+gcp-test-production: ## Verify the Production URL (sbsolver.ch)
+	$(call info, "Verifying Production (https://sbsolver.ch)...")
+	@# 1. Check HTTP 200 OK (Follow redirects)
+	@curl -s -L --fail -o /dev/null -w "%{http_code}" https://sbsolver.ch | grep 200 > /dev/null && echo "   ✅ Site is reachable (200 OK)" || (echo "   ❌ Site Unreachable" && exit 1)
+	
+	@# 2. Check Content
+	@curl -s -L https://sbsolver.ch | grep "<title>Spelling Bee Solver</title>" > /dev/null && echo "   ✅ Content verified" || (echo "   ❌ Wrong Content" && exit 1)
+	
+	@# 3. Check API Connectivity (via Frontend proxy)
+	@# Note: This assumes your frontend proxies /solve to the backend correctly
+	@curl -s -L -X POST https://sbsolver.ch/solve \
+		-H "Content-Type: application/json" \
+		-d '{"letters": "abcdefg", "present": "a"}' | grep "result" > /dev/null && echo "   ✅ API is working" || echo "   ⚠️ API check skipped/failed (Ensure /solve is exposed)"

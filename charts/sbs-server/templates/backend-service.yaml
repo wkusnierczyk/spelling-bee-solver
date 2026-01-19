@@ -5,10 +5,10 @@ metadata:
   labels:
     app: sbs-backend
 spec:
-  type: ClusterIP  # Internal only (Nginx talks to this)
+  type: {{ .Values.backend.service.type }}
   ports:
-    - port: 8080
-      targetPort: 8080
+    - port: {{ .Values.backend.service.port }}
+      targetPort: {{ .Values.backend.service.targetPort }}
       protocol: TCP
       name: http
   selector:

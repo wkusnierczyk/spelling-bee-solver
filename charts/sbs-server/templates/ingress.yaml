@@ -6,11 +6,9 @@ metadata:
   labels:
     app: {{ .Release.Name }}
   annotations:
-    # Standard GKE Ingress Class
-    kubernetes.io/ingress.class: "gce"
-    # If you use a managed cert, uncomment and set the name:
-    # networking.gke.io/managed-certificates: "sbs-certificate"
+    {{- toYaml .Values.ingress.annotations | nindent 4 }}
 spec:
+  ingressClassName: "gce"
   rules:
     - host: {{ index .Values.ingress.hosts 0 "host" | quote }}
       http:
@@ -19,7 +17,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                # FIX: Point to the standardized service name "sbs-frontend"
                 name: {{ .Values.frontend.fullnameOverride | default (printf "%s-frontend" .Release.Name) }}
                 port:
                   number: 80

@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-frontend-config
+  labels:
+    app: sbs-frontend
+data:
+  default.conf: |
+    server {
+      listen 80;
+      server_name localhost;
+
+      # Serve React App
+      location / {
+        root /usr/share/nginx/html;
+        index index.html index.htm;
+        try_files $uri $uri/ /index.html;
+      }
+
+      # Proxy to Backend (Dynamic Service Name)
+      location /solve {
+        # FIX: Dynamically insert the correct backend service name
+        proxy_pass http://{{ .Values.backend.fullnameOverride | default (printf "%s-backend" .Release.Name) }}:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+      }
+
+      location /health {
+        return 200 'healthy';
+        add_header Content-Type text/plain;
+      }
+    }

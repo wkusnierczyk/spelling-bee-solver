@@ -35,13 +35,12 @@ resources:
 
 ingress:
   enabled: true
-  className: "gce" # Standard for Google Kubernetes Engine
+  className: "gce"
   annotations:
-    # networking.gke.io/managed-certificates: "sbs-certificate"
-    # kubernetes.io/ingress.global-static-ip-name: "sbs-ip"
+    # FIX: Bind to your reserved static IP name
+    kubernetes.io/ingress.global-static-ip-name: "sbs-global-ip"
   hosts:
     - host: sbsolver.ch
       paths:
         - path: /
           pathType: Prefix
-  tls: []
