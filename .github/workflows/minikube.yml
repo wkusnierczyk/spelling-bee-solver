@@ -1,0 +1,46 @@
+name: Minikube Integration
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  minikube-ci:
+    name: K8s Integration Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 1. Spin up a headless Minikube cluster inside the runner
+      - name: Start Minikube
+        uses: medyagh/setup-minikube@master
+        with:
+          driver: docker
+          cache: true
+
+      # 2. Setup (Download Dict)
+      - name: Setup Dictionary
+        run: make setup-dictionary
+
+      # 3. Build & Deploy (Uses your Makefile logic)
+      - name: Build & Deploy
+        run: |
+          # Point shell to Minikube's Docker daemon
+          eval $(minikube docker-env)
+          make minikube-deploy
+
+      # 4. Run the Test Target (Wait -> Port-Forward -> Curl -> Exec)
+      - name: Run Integration Tests
+        run: make test-minikube
+
+      # 5. Debug Logs (Only runs if the test fails)
+      - name: Dump Pod Status
+        if: failure()
+        run: |
+          kubectl get pods -n sbs-namespace
+          kubectl logs -n sbs-namespace -l app=sbs-frontend --tail=50
+          kubectl logs -n sbs-namespace -l app=sbs-backend --tail=50
