@@ -2,7 +2,6 @@
 **/target/
 sbs-solver/data/dictionary.txt
 **/*.rs.bk
-Cargo.lock
 .idea
 .vscode
 .DS_Store
