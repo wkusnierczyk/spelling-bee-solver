@@ -1,4 +1,4 @@
-name: Deploy to GCP
+name: GCP Deployment
 
 on:
   workflow_call:
