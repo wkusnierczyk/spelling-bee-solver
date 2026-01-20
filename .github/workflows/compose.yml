@@ -1,4 +1,4 @@
-name: Docker Compose Integration
+name: Docker Compose Deployment
 
 on:
   workflow_call:

@@ -1,4 +1,4 @@
-name: Minikube Integration
+name: Minikube Deployment
 
 on:
   workflow_call:
