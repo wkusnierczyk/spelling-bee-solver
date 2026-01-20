@@ -4,8 +4,35 @@
 
 This repository does not provide yet another implementation of the puzzle.
 It offers a _solver_: a tool for solving Spelling Bee challenges.
-The purpose, of course, is not the cheat the game by copying words over from an automated solver.
-The tool was built as a proof of concept, a BWYN (build what you need) tool for educational purposes, and as an exercise in bui;ding and deploying such tools.
+
+The tool _generalizes_ beyond the original NYT puzzle though.
+
+| Constraint        | Solver                                                     | Original puzzle            |
+| ----------------- | ---------------------------------------------------------- | -------------------------- |
+| Available letters | Any number of letters                                      | Fixed at 7 letters         |
+| Required letters  | Any number of required letters, including _zero_ and _all_ | Fixed at 1 required letter |
+| Letter repetition | Configurable repetition limits                             | Unbounded repetition       |
+| Word length       | [WIP] Configurable lower and upper bounds                  | Lower bound of 4           |
+
+## Future features
+
+The Spelling Bee Solver uses a _seed dictionary_ for generation of candidate words.
+A future relase will allow the user to specify an external dictionary for:
+* Validation of the generated words and filteriing the list to only those that pass validation.
+* Hyperlinking the generated words to their entries in the external dictionary.
+
+The Spelling Bee Solver simply lists all the generated words in the GUI.
+A future release will allow the user to download those words as a text file.
+
+The Spelling Bee Solver frontend talks to the backend via a RESTful API.
+A future release may expose the API publicly, to make interaction with the frontend an optional convenience.
+
+> **Note**  
+> The tool was built as a **proof of concept**, a **BWYN** (build what you need) tool for educational purposes, and as an exercise in building and deploying such tools.
+> Running a service on the cloud implies non-negligible costs. 
+> Deploying further extensions and making the tool available 24/7 depends on external funding. 
+> See _Sponsor this project_ ([patreon](https://www.patreon.com/c/wkusnierczyk), [buymeacoffee](https://buymeacoffee.com/wkusnierczyk)).
+
 
 ## Contents
 
