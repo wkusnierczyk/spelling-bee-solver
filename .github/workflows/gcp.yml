@@ -1,6 +1,10 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: GCP Deployment
 
+concurrency:
+  group: gcp-deploy
+  cancel-in-progress: false
+
 on:
   workflow_call:
   push:
