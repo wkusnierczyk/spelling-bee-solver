@@ -43,6 +43,8 @@ A future release may expose the API publicly, to make interaction with the front
   - [Local deployment with Docker](#local-deployment-with-docker)
   - [Local deployment with Docker Compose](#local-deployment-with-docker-compose)
   - [Local deployment with Kubernetes and Minikube](#local-deployment-with-kubernetes-and-minikube)
+  - [Cloud deployment (GCP)](#cloud-deployment-gcp)
+    - [Cloud cost management](#cloud-cost-management)
 - [Development](#development)
   - [Project structure](#project-structure)
   - [Workflows](#workflows)
