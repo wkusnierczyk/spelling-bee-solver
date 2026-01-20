@@ -1,4 +1,9 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: GCP Deployment
+
+concurrency:
+  group: gcp-deploy
+  cancel-in-progress: false
 
 on:
   workflow_call:
@@ -54,11 +59,21 @@ jobs:
           echo "Waiting for rollout to stabilize..."
           sleep 30
           
-          echo "Testing HTTPS endpoint..."
-          curl -s --fail -o /dev/null -w "%{http_code}" https://sbsolver.ch | grep -q "200" && echo "✅ Site reachable (200 OK)" || exit 1
+          echo "Testing endpoint..."
+          # Try HTTPS first, fall back to HTTP if cert is still provisioning
+          if curl -s --fail -o /dev/null -w "%{http_code}" https://sbsolver.ch 2>/dev/null | grep -q "200"; then
+            echo "✅ HTTPS site reachable (200 OK)"
+            URL="https://sbsolver.ch"
+          elif curl -s --fail -o /dev/null -w "%{http_code}" http://sbsolver.ch 2>/dev/null | grep -q "200\|301"; then
+            echo "⚠️ HTTPS not ready (cert provisioning), but HTTP works"
+            URL="http://sbsolver.ch"
+          else
+            echo "❌ Site unreachable"
+            exit 1
+          fi
           
           echo "Testing API endpoint..."
-          RESULT=$(curl -s -X POST https://sbsolver.ch/solve \
+          RESULT=$(curl -s -X POST "$URL/solve" \
             -H "Content-Type: application/json" \
             -d '{"letters": "pelniga", "present": "a"}')
           

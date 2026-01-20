@@ -471,7 +471,7 @@ gcp-promote-candidate: ## Promote candidate to production (rolling update)
 gcp-cleanup-candidate: ## Remove the staging deployment
 	$(call info, "Cleaning up staging namespace...")
 	helm uninstall $(STAGING_RELEASE_NAME) -n $(STAGING_NAMESPACE) 2>/dev/null || true
-	kubectl delete namespace $(STAGING_NAMESPACE) --ignore-not-found=true
+	kubectl delete namespace $(STAGING_NAMESPACE) --ignore-not-found=true --wait=true
 	$(call info, "Staging cleaned up")
 
 gcp-deploy: gcp-auth gcp-deploy-candidate gcp-test-candidate gcp-promote-candidate gcp-cleanup-candidate ## Full deployment pipeline

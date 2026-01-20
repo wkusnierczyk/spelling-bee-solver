@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: Release
 
 on:
@@ -20,6 +21,7 @@ jobs:
     uses: ./.github/workflows/minikube.yml
   gate-gcp:
     uses: ./.github/workflows/gcp.yml
+    secrets: inherit
 
   # 1. Create the Draft Release immediately
   create-draft:
