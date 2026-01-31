@@ -403,6 +403,14 @@ Use [issues](https://github.com/wkusnierczyk/spelling-bee-solver/issues) and [di
 Use [pull requests](https://github.com/wkusnierczyk/spelling-bee-solver/pulls) to contribute content.
 No pushing to `main` is allowed.
 
+After cloning, set up the git hooks:
+
+```bash
+make setup-hooks
+```
+
+This enables a pre-push hook that runs `make check` (format, lint, test) before each push.
+
 ### Project structure
 
 ```text
@@ -458,6 +466,9 @@ make lint
 
 # Format backend code using rustfmt; local only.
 make format
+
+# Run format, lint, and test in sequence; local only.
+make check
 ```
 ---
 
