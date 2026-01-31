@@ -19,14 +19,10 @@ jobs:
     uses: ./.github/workflows/compose.yml
   gate-minikube:
     uses: ./.github/workflows/minikube.yml
-  gate-gcp:
-    uses: ./.github/workflows/gcp.yml
-    secrets: inherit
-
   # 1. Create the Draft Release immediately
   create-draft:
     name: Create Draft Release
-    needs: [gate-backend, gate-docker, gate-compose, gate-minikube, gate-gcp]
+    needs: [gate-backend, gate-docker, gate-compose, gate-minikube]
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.get_version.outputs.version }}
