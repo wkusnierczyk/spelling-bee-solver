@@ -9,7 +9,7 @@ use std::process;
 
 #[derive(Parser, Debug)]
 #[command(name = "sbs")]
-#[command(version = "0.1.2")]
+#[command(version)]
 #[command(disable_version_flag = true)]
 #[command(about = "Spelling Bee Solver tool", long_about = None)]
 struct Args {
@@ -38,7 +38,7 @@ struct Args {
 
 fn print_about() {
     println!("sbs: Spelling Bee Solver tool");
-    println!("├─ version:   0.1.2");
+    println!("├─ version:   {}", env!("CARGO_PKG_VERSION"));
     println!("├─ developer: mailto:waclaw.kusnierczyk@gmail.com");
     println!("├─ source:    https://github.com/wkusnierczyk/ips-sampler");
     println!("├─ licence:   MIT https://opensource.org/licenses/MIT");
