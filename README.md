@@ -418,7 +418,7 @@ sbs --about
 sbs: Spelling Bee Solver tool
 ├─ version:   x.y.z
 ├─ developer: mailto:waclaw.kusnierczyk@gmail.com
-├─ source:    https://github.com/wkusnierczyk/ips-sampler
+├─ source:    https://github.com/wkusnierczyk/spelling-bee-solver
 ├─ licence:   MIT https://opensource.org/licenses/MIT
 └─ usage:     sbs --help
 ```
