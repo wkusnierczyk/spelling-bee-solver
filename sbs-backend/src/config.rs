@@ -1,6 +1,7 @@
 //! Configuration management.
 
 use crate::error::SbsError;
+use crate::validator::ValidatorKind;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -34,6 +35,13 @@ pub struct Config {
 
     // External APIs for validation
     pub external_dictionaries: Option<Vec<DictionaryConfig>>,
+
+    // Validator selection
+    pub validator: Option<ValidatorKind>,
+    #[serde(rename = "api-key")]
+    pub api_key: Option<String>,
+    #[serde(rename = "validator-url")]
+    pub validator_url: Option<String>,
 }
 
 fn default_dict_path() -> PathBuf {
@@ -52,6 +60,9 @@ impl Config {
             repeats: None,
             dictionary: default_dict_path(),
             external_dictionaries: None,
+            validator: None,
+            api_key: None,
+            validator_url: None,
         }
     }
 
