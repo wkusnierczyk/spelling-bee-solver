@@ -1,7 +1,7 @@
 //! CLI entry point for Spelling Bee Solver.
 
 use clap::Parser;
-use sbs::{Config, Dictionary, Solver};
+use sbs::{create_validator, Config, Dictionary, Solver, ValidatorKind};
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
@@ -23,6 +23,15 @@ struct Args {
     dictionary: Option<PathBuf>,
     #[arg(short, long)]
     output: Option<String>,
+    #[arg(
+        long,
+        help = "Validator: free-dictionary, merriam-webster, wordnik, custom"
+    )]
+    validator: Option<String>,
+    #[arg(long, help = "API key for validators that require one")]
+    api_key: Option<String>,
+    #[arg(long, help = "Custom validator URL (use with --validator custom)")]
+    validator_url: Option<String>,
     #[arg(long)]
     about: bool,
 }
@@ -68,12 +77,27 @@ fn main() {
         config.output = Some(o);
     }
 
+    // Parse validator from CLI flag
+    let validator_kind = if let Some(v) = args.validator {
+        match v.parse::<ValidatorKind>() {
+            Ok(kind) => Some(kind),
+            Err(e) => {
+                eprintln!("Error: {}", e);
+                process::exit(1);
+            }
+        }
+    } else {
+        config.validator.clone()
+    };
+
+    let api_key = args.api_key.or(config.api_key.clone());
+    let validator_url = args.validator_url.or(config.validator_url.clone());
+
     if config.letters.is_none() || config.present.is_none() {
         eprintln!("Error: letters and present letters are required.");
         process::exit(1);
     }
 
-    // --- Changed Flow: Load Dictionary First ---
     let dictionary = match Dictionary::from_file(&config.dictionary) {
         Ok(d) => d,
         Err(e) => {
@@ -85,13 +109,48 @@ fn main() {
 
     let solver = Solver::new(config.clone());
 
-    // Pass dictionary reference to solve
     match solver.solve(&dictionary) {
         Ok(words) => {
             let mut sorted_words: Vec<_> = words.into_iter().collect();
             sorted_words.sort();
 
-            if let Some(out_path) = config.output {
+            if let Some(kind) = validator_kind {
+                let validator =
+                    match create_validator(&kind, api_key.as_deref(), validator_url.as_deref()) {
+                        Ok(v) => v,
+                        Err(e) => {
+                            eprintln!("Validator error: {}", e);
+                            process::exit(1);
+                        }
+                    };
+
+                let mut entries = Vec::new();
+                for word in &sorted_words {
+                    match validator.lookup(word) {
+                        Ok(Some(entry)) => entries.push(entry),
+                        Ok(None) => {}
+                        Err(e) => {
+                            eprintln!("Warning: validation error for '{}': {}", word, e);
+                        }
+                    }
+                }
+
+                let output_fn = |entry: &sbs::WordEntry, f: &mut dyn Write| {
+                    writeln!(f, "{}\t{}\t{}", entry.word, entry.definition, entry.url).unwrap();
+                };
+
+                if let Some(out_path) = config.output {
+                    if let Ok(mut file) = File::create(out_path) {
+                        for entry in &entries {
+                            output_fn(entry, &mut file);
+                        }
+                    }
+                } else {
+                    for entry in &entries {
+                        output_fn(entry, &mut std::io::stdout());
+                    }
+                }
+            } else if let Some(out_path) = config.output {
                 if let Ok(mut file) = File::create(out_path) {
                     for w in sorted_words {
                         writeln!(file, "{}", w).unwrap();
