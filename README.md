@@ -87,7 +87,7 @@ Add the library as a local dependency from this repo:
 
 ```toml
 [dependencies]
-sbs = { path = "sbs-solver" }
+sbs = { path = "sbs-backend" }
 ```
 
 Minimal example:
@@ -123,7 +123,7 @@ make build-cli
 Run it from the repo root (debug build):
 
 ```bash
-./sbs-solver/target/debug/sbs --letters abcdefg --present a
+./sbs-backend/target/debug/sbs --letters abcdefg --present a
 ```
 
 Install globally:
@@ -138,7 +138,7 @@ Optional flags:
 sbs \
   --letters abcdefg \
   --present a \
-  --dictionary sbs-solver/data/dictionary.txt \
+  --dictionary sbs-backend/data/dictionary.txt \
   --output /tmp/solutions.txt
 ```
 
@@ -177,7 +177,7 @@ You can also provide a JSON config file and override specific fields via flags:
 {
   "letters": "abcdefg",
   "present": "a",
-  "dictionary": "sbs-solver/data/dictionary.txt",
+  "dictionary": "sbs-backend/data/dictionary.txt",
   "minimal-word-length": 4
 }
 ```
@@ -466,7 +466,7 @@ sbs --about
 sbs: Spelling Bee Solver tool
 ├─ version:   x.y.z
 ├─ developer: mailto:waclaw.kusnierczyk@gmail.com
-├─ source:    https://github.com/wkusnierczyk/ips-sampler
+├─ source:    https://github.com/wkusnierczyk/spelling-bee-solver
 ├─ licence:   MIT https://opensource.org/licenses/MIT
 └─ usage:     sbs --help
 ```
