@@ -28,6 +28,7 @@ function App() {
   const [repeats, setRepeats] = useState('')
   const [validator, setValidator] = useState('')
   const [validatorUrl, setValidatorUrl] = useState('')
+  const [apiKey, setApiKey] = useState('')
   const [results, setResults] = useState<ResultItem[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -49,6 +50,9 @@ function App() {
         if (validator === 'custom' && validatorUrl) {
           payload["validator-url"] = validatorUrl;
         }
+        if ((validator === 'merriam-webster' || validator === 'wordnik') && apiKey) {
+          payload["api-key"] = apiKey;
+        }
       }
 
       const response = await axios.post('/solve', payload);
@@ -66,7 +70,7 @@ function App() {
 
   return (
     <div className="container">
-      <h1 style={{textAlign: 'center', marginBottom: '1.5rem'}}>Spelling Bee Solver</h1>
+      <h1 className="title">Spelling Bee Solver</h1>
 
       <div className="input-group">
         <label>Available Letters</label>
@@ -114,6 +118,18 @@ function App() {
             placeholder="e.g. https://api.dictionaryapi.dev/api/v2/entries/en"
             value={validatorUrl}
             onChange={(e) => setValidatorUrl(e.target.value)}
+          />
+        </div>
+      )}
+
+      {(validator === 'merriam-webster' || validator === 'wordnik') && (
+        <div className="input-group">
+          <label>API Key</label>
+          <input
+            type="password"
+            placeholder="Enter your API key"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
           />
         </div>
       )}

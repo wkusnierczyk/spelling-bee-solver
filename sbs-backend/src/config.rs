@@ -11,13 +11,6 @@ const DEFAULT_SIZE: usize = 7;
 const DEFAULT_DICT_PATH: &str = "data/dictionary.txt";
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct DictionaryConfig {
-    pub id: String,
-    pub name: String,
-    pub api: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Config {
     pub letters: Option<String>,
     pub present: Option<String>, // The obligatory letter(s)
@@ -32,9 +25,6 @@ pub struct Config {
     // Path to the seed dictionary for generation
     #[serde(default = "default_dict_path")]
     pub dictionary: PathBuf,
-
-    // External APIs for validation
-    pub external_dictionaries: Option<Vec<DictionaryConfig>>,
 
     // Validator selection
     pub validator: Option<ValidatorKind>,
@@ -59,7 +49,6 @@ impl Config {
             output: None,
             repeats: None,
             dictionary: default_dict_path(),
-            external_dictionaries: None,
             validator: None,
             api_key: None,
             validator_url: None,
