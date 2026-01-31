@@ -277,6 +277,9 @@ make docker-compose-up
 
 # Stop the whole stack
 make docker-compose-down
+
+# Remove containers, images, and build cache for a fresh rebuild
+make clean-compose-stack
 ```
 
 ### Local deployment with Kubernetes and Minikube

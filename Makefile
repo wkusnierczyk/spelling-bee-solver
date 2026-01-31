@@ -251,6 +251,12 @@ stop-compose-stack:
 	$(call info, "Stopping Docker Compose stack...")
 	@docker compose down
 
+clean-compose-stack: ## Remove containers, images, and build cache for a fresh rebuild
+	$(call info, "Stopping and removing containers...")
+	@docker compose down --rmi local
+	@docker builder prune -f
+	$(call info, "Clean complete. Run 'make start-compose-stack' to rebuild.")
+
 
 # --- Full Stack Testing ---
 

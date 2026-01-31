@@ -67,7 +67,7 @@ function App() {
       const data = response.data;
 
       // Server returns ValidationSummary when validator is used, string[] otherwise
-      if (data && typeof data === 'object' && 'entries' in data) {
+      if (data && typeof data === 'object' && !Array.isArray(data) && 'entries' in data) {
         const summary = data as ValidationSummary;
         setCandidateCount(summary.candidates);
         setResults(summary.entries);
