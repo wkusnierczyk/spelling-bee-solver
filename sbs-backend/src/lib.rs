@@ -12,5 +12,5 @@ pub use error::SbsError;
 pub use solver::Solver;
 pub use validator::{
     create_validator, CustomValidator, FreeDictionaryValidator, MerriamWebsterValidator,
-    ValidatorKind, WordEntry, WordnikValidator,
+    ValidationSummary, ValidatorKind, WordEntry, WordnikValidator,
 };

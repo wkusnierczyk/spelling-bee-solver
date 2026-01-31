@@ -49,17 +49,14 @@ async fn solve_puzzle(data: web::Data<AppState>, config_json: web::Json<Config>)
                         }
                     };
 
-                let mut entries = Vec::new();
-                for word in &sorted {
-                    match validator.lookup(word) {
-                        Ok(Some(entry)) => entries.push(entry),
-                        Ok(None) => {} // Word not found in validator, skip
-                        Err(e) => {
-                            log::warn!("Validation error for '{}': {}", word, e);
-                        }
-                    }
-                }
-                HttpResponse::Ok().json(entries)
+                let summary = validator.validate_words(&sorted);
+                log::info!(
+                    "Validated: {} candidates, {} confirmed by {}",
+                    summary.candidates,
+                    summary.validated,
+                    kind.display_name()
+                );
+                HttpResponse::Ok().json(summary)
             } else {
                 HttpResponse::Ok().json(sorted)
             }
