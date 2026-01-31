@@ -83,6 +83,11 @@ format: ## Format backend code using rustfmt
 
 check: format lint test ## Run format, lint, and test
 
+setup-hooks: ## Configure git to use the repo's .githooks directory
+	$(call info, "Setting git hooks path to .githooks/...")
+	@git config core.hooksPath .githooks
+	$(call info, "Git hooks configured.")
+
 
 # --- CLI Management ---
 
