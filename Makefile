@@ -101,6 +101,7 @@ version-set: ## Set version across all files: make version-set V=x.y.z
 	@sed -i '' 's/"version": ".*"/"version": "$(V)"/' sbs-frontend/package.json
 	@sed -i '' 's/^appVersion: ".*"/appVersion: "$(V)"/' charts/minikube/Chart.yaml
 	@sed -i '' 's/^appVersion: ".*"/appVersion: "$(V)"/' charts/gcp/Chart.yaml
+	@sed -i '' 's/├─ version:   .*/├─ version:   $(V)/' README.md
 	$(call info, "Version set to $(V)")
 
 bump-patch: ## Bump patch version (0.1.2 → 0.1.3)

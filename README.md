@@ -478,7 +478,7 @@ make check
 sbs --about
 
 sbs: Spelling Bee Solver tool
-├─ version:   x.y.z
+├─ version:   0.1.0
 ├─ developer: mailto:waclaw.kusnierczyk@gmail.com
 ├─ source:    https://github.com/wkusnierczyk/spelling-bee-solver
 ├─ licence:   MIT https://opensource.org/licenses/MIT
