@@ -4,9 +4,9 @@ name: Minikube Deployment
 on:
   workflow_call:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "validator" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "validator" ]
 
 jobs:
   minikube-ci:
