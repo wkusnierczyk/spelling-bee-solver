@@ -27,6 +27,7 @@ function App() {
   const [present, setPresent] = useState('')
   const [repeats, setRepeats] = useState('')
   const [validator, setValidator] = useState('')
+  const [validatorUrl, setValidatorUrl] = useState('')
   const [results, setResults] = useState<ResultItem[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -45,6 +46,9 @@ function App() {
 
       if (validator) {
         payload.validator = validator;
+        if (validator === 'custom' && validatorUrl) {
+          payload["validator-url"] = validatorUrl;
+        }
       }
 
       const response = await axios.post('/solve', payload);
@@ -99,8 +103,20 @@ function App() {
           <option value="free-dictionary">Free Dictionary</option>
           <option value="merriam-webster">Merriam-Webster</option>
           <option value="wordnik">Wordnik</option>
+          <option value="custom">Custom URL</option>
         </select>
       </div>
+
+      {validator === 'custom' && (
+        <div className="input-group">
+          <label>Custom Validator URL</label>
+          <input
+            placeholder="e.g. https://api.dictionaryapi.dev/api/v2/entries/en"
+            value={validatorUrl}
+            onChange={(e) => setValidatorUrl(e.target.value)}
+          />
+        </div>
+      )}
 
       <button onClick={handleSolve} disabled={!isValid || loading}>
         {loading ? 'Solving...' : 'Solve'}
