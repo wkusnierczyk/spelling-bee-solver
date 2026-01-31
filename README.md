@@ -14,12 +14,28 @@ The tool _generalizes_ beyond the original NYT puzzle though.
 | Letter repetition | Configurable repetition limits                             | Unbounded repetition       |
 | Word length       | [WIP] Configurable lower and upper bounds                  | Lower bound of 4           |
 
-## Future features
+## Dictionary validation
 
-The Spelling Bee Solver uses a _seed dictionary_ for generation of candidate words.
-A future relase will allow the user to specify an external dictionary for:
-* Validation of the generated words and filteriing the list to only those that pass validation.
-* Hyperlinking the generated words to their entries in the external dictionary.
+The solver uses a _seed dictionary_ (a local word list) to generate candidate words.
+Optionally, results can be validated against an external dictionary API.
+When a validator is enabled:
+* Only words confirmed by the external dictionary are retained.
+* Each word is enriched with a short definition and a hyperlink to the dictionary entry.
+
+### Supported validators
+
+| Validator | API Key | API Documentation |
+| --- | --- | --- |
+| [Free Dictionary](https://dictionaryapi.dev/) | Not required | `https://api.dictionaryapi.dev/api/v2/entries/en/{word}` |
+| [Merriam-Webster](https://dictionaryapi.com/) | Required (free tier) | `https://dictionaryapi.com/api/v3/references/collegiate/json/{word}?key=KEY` |
+| [Wordnik](https://developer.wordnik.com/) | Required (free tier) | `https://api.wordnik.com/v4/word.json/{word}/definitions?api_key=KEY` |
+| Custom URL | Not required | User-provided URL (must be Free Dictionary API-compatible) |
+
+### Custom validator
+
+You can provide your own dictionary API URL. The system will probe it (by looking up the word "test") and verify it returns a compatible JSON response. If the probe fails, an error is reported and the custom URL is not used.
+
+## Future features
 
 The Spelling Bee Solver simply lists all the generated words in the GUI.
 A future release will allow the user to download those words as a text file.
@@ -36,6 +52,9 @@ A future release may expose the API publicly, to make interaction with the front
 
 ## Contents
 
+- [Dictionary validation](#dictionary-validation)
+  - [Supported validators](#supported-validators)
+  - [Custom validator](#custom-validator)
 - [Deployment options](#deployment-options)
   - [Using the Rust library](#using-the-rust-library)
   - [Using the CLI](#using-the-cli)
@@ -121,6 +140,35 @@ sbs \
   --present a \
   --dictionary sbs-solver/data/dictionary.txt \
   --output /tmp/solutions.txt
+```
+
+With dictionary validation (results include definitions and URLs):
+
+```bash
+sbs \
+  --letters abcdefg \
+  --present a \
+  --validator free-dictionary
+```
+
+Validators that require an API key:
+
+```bash
+sbs \
+  --letters abcdefg \
+  --present a \
+  --validator merriam-webster \
+  --api-key YOUR_KEY
+```
+
+Custom validator URL:
+
+```bash
+sbs \
+  --letters abcdefg \
+  --present a \
+  --validator custom \
+  --validator-url https://your-dictionary-api.example.com/api/v2/entries/en
 ```
 
 You can also provide a JSON config file and override specific fields via flags:
