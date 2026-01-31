@@ -10,4 +10,6 @@ pub enum SbsError {
     IoError(#[from] std::io::Error),
     #[error("Serialization error: {0}")]
     SerializationError(String),
+    #[error("Validation error: {0}")]
+    ValidationError(String),
 }
