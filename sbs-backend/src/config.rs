@@ -7,14 +7,12 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 const DEFAULT_MIN_LENGTH: usize = 4;
-const DEFAULT_SIZE: usize = 7;
 const DEFAULT_DICT_PATH: &str = "data/dictionary.txt";
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Config {
     pub letters: Option<String>,
     pub present: Option<String>, // The obligatory letter(s)
-    pub size: Option<usize>,
     #[serde(rename = "minimal-word-length")]
     pub minimal_word_length: Option<usize>,
     #[serde(rename = "maximal-word-length")]
@@ -43,7 +41,6 @@ impl Config {
         Self {
             letters: None,
             present: None,
-            size: Some(DEFAULT_SIZE),
             minimal_word_length: Some(DEFAULT_MIN_LENGTH),
             maximal_word_length: None,
             output: None,

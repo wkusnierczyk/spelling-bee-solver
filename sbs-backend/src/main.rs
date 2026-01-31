@@ -124,41 +124,60 @@ fn main() {
                         }
                     };
 
-                let mut entries = Vec::new();
-                for word in &sorted_words {
-                    match validator.lookup(word) {
-                        Ok(Some(entry)) => entries.push(entry),
-                        Ok(None) => {}
-                        Err(e) => {
-                            eprintln!("Warning: validation error for '{}': {}", word, e);
-                        }
-                    }
-                }
-
-                let output_fn = |entry: &sbs::WordEntry, f: &mut dyn Write| {
-                    writeln!(f, "{}\t{}\t{}", entry.word, entry.definition, entry.url).unwrap();
-                };
+                let summary = validator.validate_words(&sorted_words);
+                eprintln!(
+                    "Generated {} candidates, {} validated by {}.",
+                    summary.candidates,
+                    summary.validated,
+                    kind.display_name()
+                );
 
                 if let Some(out_path) = config.output {
-                    if let Ok(mut file) = File::create(out_path) {
-                        for entry in &entries {
-                            output_fn(entry, &mut file);
+                    match File::create(&out_path) {
+                        Ok(mut file) => {
+                            for entry in &summary.entries {
+                                if let Err(e) = writeln!(
+                                    file,
+                                    "{}\t{}\t{}",
+                                    entry.word, entry.definition, entry.url
+                                ) {
+                                    eprintln!("Write error: {}", e);
+                                    process::exit(1);
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("Failed to create output file '{}': {}", out_path, e);
+                            process::exit(1);
                         }
                     }
                 } else {
-                    for entry in &entries {
-                        output_fn(entry, &mut std::io::stdout());
-                    }
-                }
-            } else if let Some(out_path) = config.output {
-                if let Ok(mut file) = File::create(out_path) {
-                    for w in sorted_words {
-                        writeln!(file, "{}", w).unwrap();
+                    for entry in &summary.entries {
+                        println!("{}\t{}\t{}", entry.word, entry.definition, entry.url);
                     }
                 }
             } else {
-                for w in sorted_words {
-                    println!("{}", w);
+                eprintln!("Generated {} words.", sorted_words.len());
+
+                if let Some(out_path) = config.output {
+                    match File::create(&out_path) {
+                        Ok(mut file) => {
+                            for w in &sorted_words {
+                                if let Err(e) = writeln!(file, "{}", w) {
+                                    eprintln!("Write error: {}", e);
+                                    process::exit(1);
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("Failed to create output file '{}': {}", out_path, e);
+                            process::exit(1);
+                        }
+                    }
+                } else {
+                    for w in &sorted_words {
+                        println!("{}", w);
+                    }
                 }
             }
         }

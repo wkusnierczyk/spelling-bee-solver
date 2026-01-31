@@ -16,6 +16,12 @@ interface WordEntry {
   url: string;
 }
 
+interface ValidationSummary {
+  candidates: number;
+  validated: number;
+  entries: WordEntry[];
+}
+
 type ResultItem = string | WordEntry;
 
 function isWordEntry(item: ResultItem): item is WordEntry {
@@ -30,6 +36,7 @@ function App() {
   const [validatorUrl, setValidatorUrl] = useState('')
   const [apiKey, setApiKey] = useState('')
   const [results, setResults] = useState<ResultItem[]>([])
+  const [candidateCount, setCandidateCount] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -37,6 +44,7 @@ function App() {
     setLoading(true);
     setError(null);
     setResults([]);
+    setCandidateCount(null);
 
     try {
       const payload: SolveRequest = {
@@ -56,7 +64,16 @@ function App() {
       }
 
       const response = await axios.post('/solve', payload);
-      setResults(response.data);
+      const data = response.data;
+
+      // Server returns ValidationSummary when validator is used, string[] otherwise
+      if (data && typeof data === 'object' && 'entries' in data) {
+        const summary = data as ValidationSummary;
+        setCandidateCount(summary.candidates);
+        setResults(summary.entries);
+      } else {
+        setResults(data);
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to connect to backend';
       console.error(err);
@@ -141,7 +158,13 @@ function App() {
       {error && <div className="error">{error}</div>}
 
       <div className="results">
-        {results.length > 0 && <h3>Found {results.length} words:</h3>}
+        {results.length > 0 && (
+          <h3>
+            Found {results.length} words
+            {candidateCount !== null && ` (from ${candidateCount} candidates)`}
+            :
+          </h3>
+        )}
         {results.map((item) => {
           if (isWordEntry(item)) {
             return (
