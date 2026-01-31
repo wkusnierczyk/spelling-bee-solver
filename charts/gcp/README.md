@@ -10,7 +10,7 @@
 
 ### 1. Authenticate with GKE
 ```bash
-gcloud container clusters get-credentials sbs-cluster --zone europe-west6-a --project sbs-solver
+gcloud container clusters get-credentials $GCP_CLUSTER_NAME --zone $GCP_ZONE --project $GCP_PROJECT_ID
 ```
 
 ### 2. Build and Push Images
@@ -20,16 +20,16 @@ export CLOUD_TAG=$(git rev-parse --short HEAD)
 
 # Build for linux/amd64 (required for GKE)
 docker build --platform linux/amd64 \
-  -t gcr.io/sbs-solver/sbs-backend:$CLOUD_TAG \
+  -t gcr.io/$GCP_PROJECT_ID/sbs-backend:$CLOUD_TAG \
   -f sbs-backend/Dockerfile sbs-backend
 
 docker build --platform linux/amd64 \
-  -t gcr.io/sbs-solver/sbs-frontend:$CLOUD_TAG \
+  -t gcr.io/$GCP_PROJECT_ID/sbs-frontend:$CLOUD_TAG \
   -f sbs-frontend/Dockerfile sbs-frontend
 
 # Push to GCR
-docker push gcr.io/sbs-solver/sbs-backend:$CLOUD_TAG
-docker push gcr.io/sbs-solver/sbs-frontend:$CLOUD_TAG
+docker push gcr.io/$GCP_PROJECT_ID/sbs-backend:$CLOUD_TAG
+docker push gcr.io/$GCP_PROJECT_ID/sbs-frontend:$CLOUD_TAG
 ```
 
 ### 3. Deploy with Helm

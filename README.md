@@ -310,7 +310,7 @@ make minikube-delete
 
 ![Cloud](architecture/cloud.png)
 
-Deploy the stack to a GCP (Google Clopud Platform) Kubernetes cluster using the followng make targets.
+Deploy the stack to a GCP (Google Cloud Platform) Kubernetes cluster using the followng make targets.
 
 **Note**  
 Requires `GCP_PROJECT_ID`, `GCP_CLUSTER_NAME`, and `GCP_ZONE` environment variables to be set to appropriate values.
