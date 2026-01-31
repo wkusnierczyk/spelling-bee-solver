@@ -1,7 +1,7 @@
 //! CLI entry point for Spelling Bee Solver.
 
 use clap::Parser;
-use sbs::{Config, Dictionary, Solver};
+use sbs::{create_validator, Config, Dictionary, Solver, ValidatorKind};
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
@@ -9,7 +9,7 @@ use std::process;
 
 #[derive(Parser, Debug)]
 #[command(name = "sbs")]
-#[command(version = "0.1.2")]
+#[command(version)]
 #[command(disable_version_flag = true)]
 #[command(about = "Spelling Bee Solver tool", long_about = None)]
 struct Args {
@@ -23,13 +23,22 @@ struct Args {
     dictionary: Option<PathBuf>,
     #[arg(short, long)]
     output: Option<String>,
+    #[arg(
+        long,
+        help = "Validator: free-dictionary, merriam-webster, wordnik, custom"
+    )]
+    validator: Option<String>,
+    #[arg(long, help = "API key for validators that require one")]
+    api_key: Option<String>,
+    #[arg(long, help = "Custom validator URL (use with --validator custom)")]
+    validator_url: Option<String>,
     #[arg(long)]
     about: bool,
 }
 
 fn print_about() {
     println!("sbs: Spelling Bee Solver tool");
-    println!("├─ version:   0.1.2");
+    println!("├─ version:   {}", env!("CARGO_PKG_VERSION"));
     println!("├─ developer: mailto:waclaw.kusnierczyk@gmail.com");
     println!("├─ source:    https://github.com/wkusnierczyk/ips-sampler");
     println!("├─ licence:   MIT https://opensource.org/licenses/MIT");
@@ -68,12 +77,27 @@ fn main() {
         config.output = Some(o);
     }
 
+    // Parse validator from CLI flag
+    let validator_kind = if let Some(v) = args.validator {
+        match v.parse::<ValidatorKind>() {
+            Ok(kind) => Some(kind),
+            Err(e) => {
+                eprintln!("Error: {}", e);
+                process::exit(1);
+            }
+        }
+    } else {
+        config.validator.clone()
+    };
+
+    let api_key = args.api_key.or(config.api_key.clone());
+    let validator_url = args.validator_url.or(config.validator_url.clone());
+
     if config.letters.is_none() || config.present.is_none() {
         eprintln!("Error: letters and present letters are required.");
         process::exit(1);
     }
 
-    // --- Changed Flow: Load Dictionary First ---
     let dictionary = match Dictionary::from_file(&config.dictionary) {
         Ok(d) => d,
         Err(e) => {
@@ -85,21 +109,75 @@ fn main() {
 
     let solver = Solver::new(config.clone());
 
-    // Pass dictionary reference to solve
     match solver.solve(&dictionary) {
         Ok(words) => {
             let mut sorted_words: Vec<_> = words.into_iter().collect();
             sorted_words.sort();
 
-            if let Some(out_path) = config.output {
-                if let Ok(mut file) = File::create(out_path) {
-                    for w in sorted_words {
-                        writeln!(file, "{}", w).unwrap();
+            if let Some(kind) = validator_kind {
+                let validator =
+                    match create_validator(&kind, api_key.as_deref(), validator_url.as_deref()) {
+                        Ok(v) => v,
+                        Err(e) => {
+                            eprintln!("Validator error: {}", e);
+                            process::exit(1);
+                        }
+                    };
+
+                let summary = validator.validate_words(&sorted_words);
+                eprintln!(
+                    "Generated {} candidates, {} validated by {}.",
+                    summary.candidates,
+                    summary.validated,
+                    kind.display_name()
+                );
+
+                if let Some(out_path) = config.output {
+                    match File::create(&out_path) {
+                        Ok(mut file) => {
+                            for entry in &summary.entries {
+                                if let Err(e) = writeln!(
+                                    file,
+                                    "{}\t{}\t{}",
+                                    entry.word, entry.definition, entry.url
+                                ) {
+                                    eprintln!("Write error: {}", e);
+                                    process::exit(1);
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("Failed to create output file '{}': {}", out_path, e);
+                            process::exit(1);
+                        }
+                    }
+                } else {
+                    for entry in &summary.entries {
+                        println!("{}\t{}\t{}", entry.word, entry.definition, entry.url);
                     }
                 }
             } else {
-                for w in sorted_words {
-                    println!("{}", w);
+                eprintln!("Generated {} words.", sorted_words.len());
+
+                if let Some(out_path) = config.output {
+                    match File::create(&out_path) {
+                        Ok(mut file) => {
+                            for w in &sorted_words {
+                                if let Err(e) = writeln!(file, "{}", w) {
+                                    eprintln!("Write error: {}", e);
+                                    process::exit(1);
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("Failed to create output file '{}': {}", out_path, e);
+                            process::exit(1);
+                        }
+                    }
+                } else {
+                    for w in &sorted_words {
+                        println!("{}", w);
+                    }
                 }
             }
         }

@@ -1,12 +1,12 @@
 //! REST API Service for Spelling Bee Solver.
 //!
 //! Endpoints:
-//! - POST /solve: Accepts JSON config, returns word list.
+//! - POST /solve: Accepts JSON config, returns word list (or enriched entries with validator).
 //! - GET /health: Status check.
 
 use actix_cors::Cors;
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
-use sbs::{Config, Dictionary, Solver};
+use sbs::{create_validator, Config, Dictionary, Solver};
 use std::env;
 use std::sync::Arc;
 
@@ -24,13 +24,13 @@ async fn health() -> impl Responder {
 async fn solve_puzzle(data: web::Data<AppState>, config_json: web::Json<Config>) -> impl Responder {
     let config = config_json.into_inner();
 
-    // We run the solver logic. Since it's CPU bound, for very large dictionaries
-    // or heavy load, we might use web::block, but Trie traversal is usually fast enough (ms).
-
-    // Validate basics
     if config.letters.is_none() || config.present.is_none() {
         return HttpResponse::BadRequest().body("Missing letters or present char");
     }
+
+    let validator_kind = config.validator.clone();
+    let api_key = config.api_key.clone();
+    let validator_url = config.validator_url.clone();
 
     let solver = Solver::new(config);
 
@@ -38,7 +38,28 @@ async fn solve_puzzle(data: web::Data<AppState>, config_json: web::Json<Config>)
         Ok(words) => {
             let mut sorted: Vec<String> = words.into_iter().collect();
             sorted.sort();
-            HttpResponse::Ok().json(sorted)
+
+            // If a validator is specified, enrich results with definitions and URLs
+            if let Some(kind) = validator_kind {
+                let validator =
+                    match create_validator(&kind, api_key.as_deref(), validator_url.as_deref()) {
+                        Ok(v) => v,
+                        Err(e) => {
+                            return HttpResponse::BadRequest().body(e.to_string());
+                        }
+                    };
+
+                let summary = validator.validate_words(&sorted);
+                log::info!(
+                    "Validated: {} candidates, {} confirmed by {}",
+                    summary.candidates,
+                    summary.validated,
+                    kind.display_name()
+                );
+                HttpResponse::Ok().json(summary)
+            } else {
+                HttpResponse::Ok().json(sorted)
+            }
         }
         Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
     }
@@ -48,8 +69,6 @@ async fn solve_puzzle(data: web::Data<AppState>, config_json: web::Json<Config>)
 async fn main() -> std::io::Result<()> {
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
-    // Load dictionary path from env or default
-    // Note: In a real deployment, we might pass this via CLI args to the server binary too.
     let dict_path = env::var("SBS_DICT").unwrap_or_else(|_| "data/dictionary.txt".to_string());
 
     log::info!("Loading dictionary from: {}", dict_path);
@@ -65,7 +84,7 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
-            .wrap(Cors::permissive()) // Allow requests from GUI
+            .wrap(Cors::permissive())
             .app_data(web::Data::new(AppState {
                 dictionary: dictionary.clone(),
             }))

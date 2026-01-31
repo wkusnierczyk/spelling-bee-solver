@@ -53,7 +53,12 @@ endif
 	stop-local \
 	status \
 	deploy-cloud \
-	build-architecture
+	build-architecture \
+	version \
+	version-set \
+	bump-patch \
+	bump-minor \
+	bump-major
 
 help: ## Show help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -80,6 +85,39 @@ lint: ## Run clippy linter on backend
 format: ## Format backend code using rustfmt
 	$(call info, "Formatting backend code...")
 	cd $(SBS_BACKEND_DIR) && cargo fmt
+
+check: format lint test ## Run format, lint, and test
+
+# --- Version Management ---
+
+VERSION = $(shell sed -n 's/^version = "\(.*\)"/\1/p' sbs-backend/Cargo.toml | head -1)
+
+version: ## Print current version
+	@echo $(VERSION)
+
+version-set: ## Set version across all files: make version-set V=x.y.z
+	@test -n "$(V)" || (echo "Usage: make version-set V=x.y.z" && exit 1)
+	@sed -i '' 's/^version = ".*"/version = "$(V)"/' sbs-backend/Cargo.toml
+	@sed -i '' 's/"version": ".*"/"version": "$(V)"/' sbs-frontend/package.json
+	@sed -i '' 's/^appVersion: ".*"/appVersion: "$(V)"/' charts/minikube/Chart.yaml
+	@sed -i '' 's/^appVersion: ".*"/appVersion: "$(V)"/' charts/gcp/Chart.yaml
+	@sed -i '' 's/├─ version:   .*/├─ version:   $(V)/' README.md
+	$(call info, "Version set to $(V)")
+
+bump-patch: ## Bump patch version (0.1.2 → 0.1.3)
+	@$(MAKE) version-set V=$(shell echo $(VERSION) | awk -F. '{printf "%d.%d.%d", $$1, $$2, $$3+1}')
+
+bump-minor: ## Bump minor version (0.1.2 → 0.2.0)
+	@$(MAKE) version-set V=$(shell echo $(VERSION) | awk -F. '{printf "%d.%d.0", $$1, $$2+1}')
+
+bump-major: ## Bump major version (0.1.2 → 1.0.0)
+	@$(MAKE) version-set V=$(shell echo $(VERSION) | awk -F. '{printf "%d.0.0", $$1+1}')
+
+
+setup-hooks: ## Configure git to use the repo's .githooks directory
+	$(call info, "Setting git hooks path to .githooks/...")
+	@git config core.hooksPath .githooks
+	$(call info, "Git hooks configured.")
 
 
 # --- CLI Management ---
@@ -250,6 +288,12 @@ test-compose-stack:
 stop-compose-stack:
 	$(call info, "Stopping Docker Compose stack...")
 	@docker compose down
+
+clean-compose-stack: ## Remove containers, images, and build cache for a fresh rebuild
+	$(call info, "Stopping and removing containers...")
+	@docker compose down --rmi local
+	@docker builder prune -f
+	$(call info, "Clean complete. Run 'make start-compose-stack' to rebuild.")
 
 
 # --- Full Stack Testing ---

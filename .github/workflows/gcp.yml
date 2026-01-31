@@ -6,12 +6,7 @@ concurrency:
   cancel-in-progress: false
 
 on:
-  workflow_call:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-  workflow_dispatch:  # Allow manual trigger
+  workflow_dispatch:  # Manual trigger only (cloud publishing disabled for CI)
 
 env:
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}

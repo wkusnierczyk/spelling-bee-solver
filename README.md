@@ -14,12 +14,28 @@ The tool _generalizes_ beyond the original NYT puzzle though.
 | Letter repetition | Configurable repetition limits                             | Unbounded repetition       |
 | Word length       | [WIP] Configurable lower and upper bounds                  | Lower bound of 4           |
 
-## Future features
+## Dictionary validation
 
-The Spelling Bee Solver uses a _seed dictionary_ for generation of candidate words.
-A future relase will allow the user to specify an external dictionary for:
-* Validation of the generated words and filteriing the list to only those that pass validation.
-* Hyperlinking the generated words to their entries in the external dictionary.
+The solver uses a _seed dictionary_ (a local word list) to generate candidate words.
+Optionally, results can be validated against an external dictionary API.
+When a validator is enabled:
+* Only words confirmed by the external dictionary are retained.
+* Each word is enriched with a short definition and a hyperlink to the dictionary entry.
+
+### Supported validators
+
+| Validator | API Key | API Documentation |
+| --- | --- | --- |
+| [Free Dictionary](https://dictionaryapi.dev/) | Not required | `https://api.dictionaryapi.dev/api/v2/entries/en/{word}` |
+| [Merriam-Webster](https://dictionaryapi.com/) | Required (free tier) | `https://dictionaryapi.com/api/v3/references/collegiate/json/{word}?key=KEY` |
+| [Wordnik](https://developer.wordnik.com/) | Required (free tier) | `https://api.wordnik.com/v4/word.json/{word}/definitions?api_key=KEY` |
+| Custom URL | Not required | User-provided URL (must be Free Dictionary API-compatible) |
+
+### Custom validator
+
+You can provide your own dictionary API URL. The system will probe it (by looking up the word "test") and verify it returns a compatible JSON response. If the probe fails, an error is reported and the custom URL is not used.
+
+## Future features
 
 The Spelling Bee Solver simply lists all the generated words in the GUI.
 A future release will allow the user to download those words as a text file.
@@ -36,6 +52,9 @@ A future release may expose the API publicly, to make interaction with the front
 
 ## Contents
 
+- [Dictionary validation](#dictionary-validation)
+  - [Supported validators](#supported-validators)
+  - [Custom validator](#custom-validator)
 - [Deployment options](#deployment-options)
   - [Using the Rust library](#using-the-rust-library)
   - [Using the CLI](#using-the-cli)
@@ -121,6 +140,35 @@ sbs \
   --present a \
   --dictionary sbs-backend/data/dictionary.txt \
   --output /tmp/solutions.txt
+```
+
+With dictionary validation (results include definitions and URLs):
+
+```bash
+sbs \
+  --letters abcdefg \
+  --present a \
+  --validator free-dictionary
+```
+
+Validators that require an API key:
+
+```bash
+sbs \
+  --letters abcdefg \
+  --present a \
+  --validator merriam-webster \
+  --api-key YOUR_KEY
+```
+
+Custom validator URL:
+
+```bash
+sbs \
+  --letters abcdefg \
+  --present a \
+  --validator custom \
+  --validator-url https://your-dictionary-api.example.com/api/v2/entries/en
 ```
 
 You can also provide a JSON config file and override specific fields via flags:
@@ -229,6 +277,9 @@ make docker-compose-up
 
 # Stop the whole stack
 make docker-compose-down
+
+# Remove containers, images, and build cache for a fresh rebuild
+make clean-compose-stack
 ```
 
 ### Local deployment with Kubernetes and Minikube
@@ -262,7 +313,7 @@ make minikube-delete
 
 ![Cloud](architecture/cloud.png)
 
-Deploy the stack to a GCP (Google Clopud Platform) Kubernetes cluster using the followng make targets.
+Deploy the stack to a GCP (Google Cloud Platform) Kubernetes cluster using the followng make targets.
 
 **Note**  
 Requires `GCP_PROJECT_ID`, `GCP_CLUSTER_NAME`, and `GCP_ZONE` environment variables to be set to appropriate values.
@@ -352,6 +403,14 @@ Use [issues](https://github.com/wkusnierczyk/spelling-bee-solver/issues) and [di
 Use [pull requests](https://github.com/wkusnierczyk/spelling-bee-solver/pulls) to contribute content.
 No pushing to `main` is allowed.
 
+After cloning, set up the git hooks:
+
+```bash
+make setup-hooks
+```
+
+This enables a pre-push hook that runs `make check` (format, lint, test) before each push.
+
 ### Project structure
 
 ```text
@@ -407,6 +466,9 @@ make lint
 
 # Format backend code using rustfmt; local only.
 make format
+
+# Run format, lint, and test in sequence; local only.
+make check
 ```
 ---
 
@@ -416,7 +478,7 @@ make format
 sbs --about
 
 sbs: Spelling Bee Solver tool
-├─ version:   x.y.z
+├─ version:   0.1.0
 ├─ developer: mailto:waclaw.kusnierczyk@gmail.com
 ├─ source:    https://github.com/wkusnierczyk/spelling-bee-solver
 ├─ licence:   MIT https://opensource.org/licenses/MIT
