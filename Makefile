@@ -81,6 +81,8 @@ format: ## Format backend code using rustfmt
 	$(call info, "Formatting backend code...")
 	cd $(SBS_BACKEND_DIR) && cargo fmt
 
+check: format lint test ## Run format, lint, and test
+
 
 # --- CLI Management ---
 
