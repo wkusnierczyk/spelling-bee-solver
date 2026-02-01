@@ -641,10 +641,11 @@ test-mobile: ## Run mobile unit tests
 	$(call info, "Running mobile tests...")
 	cd $(SBS_MOBILE_DIR) && npx jest --ci --forceExit
 
-clean-mobile: ## Clean mobile build artifacts
+clean-mobile: ## Clean mobile build artifacts (Gradle, bundled JS)
 	$(call info, "Cleaning mobile build artifacts...")
 	cd $(SBS_MOBILE_DIR)/android && ./gradlew clean
 	rm -rf $(SBS_MOBILE_DIR)/android/app/build
+	rm -f $(SBS_MOBILE_DIR)/android/app/src/main/assets/index.android.bundle
 	$(call info, "Mobile clean complete.")
 
 
