@@ -12,10 +12,6 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
-function flushTimersAndMicrotasks() {
-  jest.advanceTimersByTime(200);
-}
-
 describe('validateWords', () => {
   it('looks up words via Free Dictionary', async () => {
     mockFetch.mockResolvedValue({

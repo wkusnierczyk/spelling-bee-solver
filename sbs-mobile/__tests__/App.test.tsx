@@ -92,11 +92,6 @@ describe('App', () => {
       presentInput.props.onChangeText('a');
     });
 
-    // Press solve
-    const solveButton = tree!.root.findAllByType('View' as any).find(
-      v => v.props.accessibilityRole === 'button' || v.props.onPress,
-    );
-
     // Find Pressable
     const pressables = tree!.root.findAllByProps({disabled: false}).filter(
       n => n.props.onPress,

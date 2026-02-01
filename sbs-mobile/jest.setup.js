@@ -1,3 +1,4 @@
+/* eslint-env jest */
 // Mock NativeModules.SbsSolver
 jest.mock('react-native', () => {
   const rn = jest.requireActual('react-native');
