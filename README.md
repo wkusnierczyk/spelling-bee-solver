@@ -60,6 +60,7 @@ A future release may expose the API publicly, to make interaction with the front
   - [Using the FFI library](#using-the-ffi-library)
   - [Building for Android](#building-for-android)
   - [React Native mobile app](#react-native-mobile-app)
+    - [Building a standalone APK](#building-a-standalone-apk)
     - [Installing on a device](#installing-on-a-device)
     - [Running on an emulator](#running-on-an-emulator)
   - [Using the CLI](#using-the-cli)
@@ -315,6 +316,23 @@ make test-mobile
 make clean-mobile
 make clean-android
 ```
+
+#### Building a standalone APK
+
+The default debug APK requires a running Metro bundler to load the JavaScript bundle. To build a self-contained APK with the JS bundle embedded (no Metro needed):
+
+```bash
+mkdir -p sbs-mobile/android/app/src/main/assets
+
+cd sbs-mobile && npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
+
+cd android && ./gradlew assembleDebug
+```
+
+The APK at `sbs-mobile/android/app/build/outputs/apk/debug/app-debug.apk` now works without a development server. This is the recommended approach for wireless deployment and for sharing the APK with others.
+
+> **Note**
+> `make run-mobile` starts Metro and deploys in one step, which works well over USB. For wireless ADB, `adb reverse` is not supported, so the standalone APK approach above is more reliable. Alternatively, set the Metro host to your machine's IP on the device: shake → Settings → Debug server host & port for device → enter `<your-ip>:8081`.
 
 #### Targets summary
 
