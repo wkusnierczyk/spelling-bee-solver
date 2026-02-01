@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import axios from 'axios'
 
 interface SolveRequest {
@@ -39,6 +39,52 @@ function App() {
   const [candidateCount, setCandidateCount] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const clearResults = () => {
+    setResults([]);
+    setCandidateCount(null);
+    setError(null);
+  };
+
+  // Load API key from localStorage when validator changes
+  useEffect(() => {
+    if (validator) {
+      const saved = localStorage.getItem(`apiKey:${validator}`);
+      setApiKey(saved ?? '');
+    } else {
+      setApiKey('');
+    }
+  }, [validator]);
+
+  const handleLettersChange = (value: string) => {
+    const unique = [...new Set(value.split(''))].join('');
+    setLetters(unique);
+    if (present && !unique.includes(present)) setPresent('');
+    clearResults();
+  };
+
+  const handlePresentChange = (value: string) => {
+    if (value.length === 0 || letters.includes(value)) {
+      setPresent(value);
+      clearResults();
+    }
+  };
+
+  const handleRepeatsChange = (value: string) => {
+    setRepeats(value);
+    clearResults();
+  };
+
+  const handleApiKeyChange = (value: string) => {
+    setApiKey(value);
+    if (validator) {
+      if (value) {
+        localStorage.setItem(`apiKey:${validator}`, value);
+      } else {
+        localStorage.removeItem(`apiKey:${validator}`);
+      }
+    }
+  };
 
   const handleSolve = async () => {
     setLoading(true);
@@ -94,16 +140,16 @@ function App() {
         <input
           placeholder="e.g. abcdefg"
           value={letters}
-          onChange={(e) => setLetters(e.target.value)}
+          onChange={(e) => handleLettersChange(e.target.value)}
         />
       </div>
 
       <div className="input-group">
-        <label>Obligatory Letter</label>
+        <label>Required Letter</label>
         <input
-          placeholder="e.g. a"
+          placeholder={letters.length > 0 ? `e.g. ${letters[0]}` : ''}
           value={present}
-          onChange={(e) => setPresent(e.target.value)}
+          onChange={(e) => handlePresentChange(e.target.value)}
         />
       </div>
 
@@ -113,7 +159,7 @@ function App() {
           type="number"
           placeholder="Unlimited"
           value={repeats}
-          onChange={(e) => setRepeats(e.target.value)}
+          onChange={(e) => handleRepeatsChange(e.target.value)}
         />
       </div>
 
@@ -146,7 +192,7 @@ function App() {
             type="password"
             placeholder="Enter your API key"
             value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
+            onChange={(e) => handleApiKeyChange(e.target.value)}
           />
         </div>
       )}
