@@ -6,17 +6,20 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
 } from 'react-native';
 import {SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
 import LetterInput from './src/components/LetterInput';
+import ModeToggle from './src/components/ModeToggle';
 import ResultsList, {ResultItem} from './src/components/ResultsList';
 import {solve} from './src/native/SbsSolver';
+import {solveOnline} from './src/services/api';
 
 function App() {
   const [letters, setLetters] = useState('');
   const [present, setPresent] = useState('');
   const [repeats, setRepeats] = useState('');
+  const [online, setOnline] = useState(false);
+  const [backendUrl, setBackendUrl] = useState('http://10.0.2.2:8080');
   const [results, setResults] = useState<ResultItem[]>([]);
   const [candidateCount, setCandidateCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
@@ -30,8 +33,29 @@ function App() {
     setResults([]);
     setCandidateCount(null);
 
+    const repeatsNum = repeats ? parseInt(repeats, 10) : 0;
+
+    if (online) {
+      try {
+        const response = await solveOnline(
+          backendUrl,
+          letters,
+          present,
+          repeatsNum || null,
+        );
+        setResults(response.results);
+        setCandidateCount(response.candidateCount);
+        setLoading(false);
+        return;
+      } catch (onlineErr: unknown) {
+        const msg =
+          onlineErr instanceof Error ? onlineErr.message : 'Online request failed';
+        setError(`Online failed (${msg}), falling back to offline...`);
+      }
+    }
+
     try {
-      const words = await solve(letters, present, repeats ? parseInt(repeats, 10) : 0);
+      const words = await solve(letters, present, repeatsNum);
       setResults(words);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Solve failed';
@@ -55,6 +79,13 @@ function App() {
             onLettersChange={setLetters}
             onPresentChange={setPresent}
             onRepeatsChange={setRepeats}
+          />
+
+          <ModeToggle
+            online={online}
+            backendUrl={backendUrl}
+            onToggle={setOnline}
+            onUrlChange={setBackendUrl}
           />
 
           <TouchableOpacity
