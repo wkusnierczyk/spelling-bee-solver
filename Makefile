@@ -64,6 +64,7 @@ endif
 	clean-android \
 	setup-mobile \
 	build-mobile \
+	check-mobile \
 	run-mobile \
 	clean-mobile
 
@@ -619,6 +620,8 @@ build-mobile: ## Build the Android debug APK
 run-mobile: ## Run the React Native app on a connected Android device/emulator
 	$(call info, "Starting React Native for Android...")
 	cd $(SBS_MOBILE_DIR) && npx react-native run-android
+
+check-mobile: build-android build-mobile ## Verify mobile builds (requires Android SDK + NDK)
 
 clean-mobile: ## Clean mobile build artifacts
 	$(call info, "Cleaning mobile build artifacts...")
