@@ -1,18 +1,39 @@
 import React, {useState} from 'react';
 import {
   ActivityIndicator,
-  ScrollView,
+  FlatList,
+  Pressable,
   StatusBar,
   StyleSheet,
   Text,
-  TouchableOpacity,
+  View,
 } from 'react-native';
 import {SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
 import LetterInput from './src/components/LetterInput';
 import ModeToggle from './src/components/ModeToggle';
-import ResultsList, {ResultItem} from './src/components/ResultsList';
+import {ResultItem, isWordEntry} from './src/components/ResultsList';
 import {solve} from './src/native/SbsSolver';
 import {solveOnline} from './src/services/api';
+import {Linking} from 'react-native';
+import {TouchableOpacity} from 'react-native';
+
+function WordCard({item}: {item: ResultItem}) {
+  if (isWordEntry(item)) {
+    return (
+      <View style={styles.card}>
+        <TouchableOpacity onPress={() => Linking.openURL(item.url)}>
+          <Text style={styles.wordLink}>{item.word}</Text>
+        </TouchableOpacity>
+        <Text style={styles.definition}>{item.definition}</Text>
+      </View>
+    );
+  }
+  return (
+    <View style={styles.card}>
+      <Text style={styles.word}>{item}</Text>
+    </View>
+  );
+}
 
 function App() {
   const [letters, setLetters] = useState('');
@@ -65,44 +86,60 @@ function App() {
     }
   };
 
+  const header = candidateCount !== null
+    ? `Found ${results.length} words (from ${candidateCount} candidates):`
+    : `Found ${results.length} words:`;
+
+  const ListHeader = (
+    <View>
+      <Text style={styles.title}>Spelling Bee Solver</Text>
+
+      <LetterInput
+        letters={letters}
+        present={present}
+        repeats={repeats}
+        onLettersChange={setLetters}
+        onPresentChange={setPresent}
+        onRepeatsChange={setRepeats}
+      />
+
+      <ModeToggle
+        online={online}
+        backendUrl={backendUrl}
+        onToggle={setOnline}
+        onUrlChange={setBackendUrl}
+      />
+
+      <Pressable
+        style={[styles.button, (!isValid || loading) && styles.buttonDisabled]}
+        onPress={handleSolve}
+        disabled={!isValid || loading}>
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>Solve</Text>
+        )}
+      </Pressable>
+
+      {error && <Text style={styles.error}>{error}</Text>}
+
+      {results.length > 0 && <Text style={styles.header}>{header}</Text>}
+    </View>
+  );
+
   return (
     <SafeAreaProvider>
       <StatusBar barStyle="dark-content" />
       <SafeAreaView style={styles.safe}>
-        <ScrollView contentContainerStyle={styles.container}>
-          <Text style={styles.title}>Spelling Bee Solver</Text>
-
-          <LetterInput
-            letters={letters}
-            present={present}
-            repeats={repeats}
-            onLettersChange={setLetters}
-            onPresentChange={setPresent}
-            onRepeatsChange={setRepeats}
-          />
-
-          <ModeToggle
-            online={online}
-            backendUrl={backendUrl}
-            onToggle={setOnline}
-            onUrlChange={setBackendUrl}
-          />
-
-          <TouchableOpacity
-            style={[styles.button, (!isValid || loading) && styles.buttonDisabled]}
-            onPress={handleSolve}
-            disabled={!isValid || loading}>
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Solve</Text>
-            )}
-          </TouchableOpacity>
-
-          {error && <Text style={styles.error}>{error}</Text>}
-
-          <ResultsList results={results} candidateCount={candidateCount} />
-        </ScrollView>
+        <FlatList
+          data={results}
+          keyExtractor={(item, index) =>
+            typeof item === 'string' ? item : item.word || String(index)
+          }
+          renderItem={({item}) => <WordCard item={item} />}
+          ListHeaderComponent={ListHeader}
+          contentContainerStyle={styles.container}
+        />
       </SafeAreaView>
     </SafeAreaProvider>
   );
@@ -143,6 +180,32 @@ const styles = StyleSheet.create({
     color: '#dc3545',
     fontSize: 14,
     marginBottom: 12,
+  },
+  header: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 8,
+  },
+  card: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 6,
+  },
+  word: {
+    fontSize: 16,
+    color: '#333',
+  },
+  wordLink: {
+    fontSize: 16,
+    color: '#007bff',
+    fontWeight: '600',
+  },
+  definition: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 4,
   },
 });
 

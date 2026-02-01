@@ -10,7 +10,7 @@ extern void  sbs_free_string(char *s);
 extern const char *sbs_version(void);
 
 JNIEXPORT jlong JNICALL
-Java_com_sbsmobile_SbsSolverModule_00024Companion_sbsLoadDictionary(
+Java_com_sbsmobile_SbsSolverModule_sbsLoadDictionary(
     JNIEnv *env, jobject thiz, jstring path) {
     const char *c_path = (*env)->GetStringUTFChars(env, path, NULL);
     if (!c_path) return 0;
@@ -20,7 +20,7 @@ Java_com_sbsmobile_SbsSolverModule_00024Companion_sbsLoadDictionary(
 }
 
 JNIEXPORT void JNICALL
-Java_com_sbsmobile_SbsSolverModule_00024Companion_sbsFreeDictionary(
+Java_com_sbsmobile_SbsSolverModule_sbsFreeDictionary(
     JNIEnv *env, jobject thiz, jlong ptr) {
     if (ptr != 0) {
         sbs_free_dictionary((void *)(intptr_t)ptr);
@@ -28,7 +28,7 @@ Java_com_sbsmobile_SbsSolverModule_00024Companion_sbsFreeDictionary(
 }
 
 JNIEXPORT jstring JNICALL
-Java_com_sbsmobile_SbsSolverModule_00024Companion_sbsSolve(
+Java_com_sbsmobile_SbsSolverModule_sbsSolve(
     JNIEnv *env, jobject thiz, jlong dict_ptr, jstring request_json) {
     if (dict_ptr == 0) {
         return (*env)->NewStringUTF(env, "{\"error\":\"null dictionary pointer\"}");
@@ -48,7 +48,7 @@ Java_com_sbsmobile_SbsSolverModule_00024Companion_sbsSolve(
 }
 
 JNIEXPORT void JNICALL
-Java_com_sbsmobile_SbsSolverModule_00024Companion_sbsFreeString(
+Java_com_sbsmobile_SbsSolverModule_sbsFreeString(
     JNIEnv *env, jobject thiz, jlong ptr) {
     if (ptr != 0) {
         sbs_free_string((char *)(intptr_t)ptr);
@@ -56,7 +56,7 @@ Java_com_sbsmobile_SbsSolverModule_00024Companion_sbsFreeString(
 }
 
 JNIEXPORT jstring JNICALL
-Java_com_sbsmobile_SbsSolverModule_00024Companion_sbsVersion(
+Java_com_sbsmobile_SbsSolverModule_sbsVersion(
     JNIEnv *env, jobject thiz) {
     const char *version = sbs_version();
     return (*env)->NewStringUTF(env, version ? version : "unknown");
