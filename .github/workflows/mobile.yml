@@ -1,0 +1,29 @@
+name: Mobile
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_call:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: sbs-mobile/package-lock.json
+
+      - name: Install dependencies
+        run: cd sbs-mobile && npm ci
+
+      - name: Run tests
+        run: make test-mobile
+
+      - name: Lint
+        run: cd sbs-mobile && npx eslint .

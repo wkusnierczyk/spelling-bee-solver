@@ -1,0 +1,57 @@
+graph LR
+    User([User])
+
+    subgraph ReactNative["React Native App"]
+        UI["React Native UI<br/>(App.tsx)"]
+        SbsSolverTS["SbsSolver.ts"]
+        ApiTS["api.ts"]
+        ValidatorTS["validator.ts"]
+    end
+
+    subgraph Android["Android Runtime"]
+        NativeModules["NativeModules"]
+        SbsSolverModule["SbsSolverModule.kt"]
+        JNI["JNI Bridge<br/>(libsbs_jni.so)"]
+        FFI["libsbs_ffi.so"]
+        Dict["dictionary.txt"]
+    end
+
+    Backend["Backend Server<br/>(sbs-backend)"]
+
+    subgraph ExternalAPIs["External Dictionary APIs"]
+        FreeDictAPI["Free Dictionary API"]
+        MWAPI["Merriam-Webster API"]
+        WordnikAPI["Wordnik API"]
+        CustomAPI["Custom URL"]
+    end
+
+    User --> UI
+
+    %% Offline path
+    UI -->|"offline solve"| SbsSolverTS
+    SbsSolverTS --> NativeModules
+    NativeModules --> SbsSolverModule
+    SbsSolverModule --> JNI
+    JNI --> FFI
+    FFI --> Dict
+
+    %% Online path
+    UI -->|"online solve"| ApiTS
+    ApiTS -->|"POST /solve"| Backend
+
+    %% Validation path
+    UI -->|"validate words"| ValidatorTS
+    ValidatorTS --> FreeDictAPI
+    ValidatorTS --> MWAPI
+    ValidatorTS --> WordnikAPI
+    ValidatorTS --> CustomAPI
+
+    classDef rn fill:#61dafb,stroke:#333,color:#000
+    classDef android fill:#3ddc84,stroke:#333,color:#000
+    classDef external fill:#f9a825,stroke:#333,color:#000
+    classDef user fill:#fff,stroke:#333,color:#000
+
+    class UI,SbsSolverTS,ApiTS,ValidatorTS rn
+    class NativeModules,SbsSolverModule,JNI,FFI,Dict android
+    class Backend,FreeDictAPI,MWAPI,WordnikAPI,CustomAPI external
+    class User user

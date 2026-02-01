@@ -57,6 +57,12 @@ A future release may expose the API publicly, to make interaction with the front
   - [Custom validator](#custom-validator)
 - [Deployment options](#deployment-options)
   - [Using the Rust library](#using-the-rust-library)
+  - [Using the FFI library](#using-the-ffi-library)
+  - [Building for Android](#building-for-android)
+  - [React Native mobile app](#react-native-mobile-app)
+    - [Building a standalone APK](#building-a-standalone-apk)
+    - [Installing on a device](#installing-on-a-device)
+    - [Running on an emulator](#running-on-an-emulator)
   - [Using the CLI](#using-the-cli)
   - [Local native deployment](#local-native-deployment)
   - [Local deployment with Docker](#local-deployment-with-docker)
@@ -75,6 +81,8 @@ A future release may expose the API publicly, to make interaction with the front
 The tool can be used as:
 
 * A rust library, that can be used in client rust code.
+* A C-compatible FFI library (`sbs-ffi`), for embedding in mobile apps and other non-Rust environments.
+* A React Native Android app (`sbs-mobile`), with offline FFI solving and optional online validation.
 * A CLI (command-line interface) tool that can be installed on a local machine and executed in the terminal.
 * A locally deployed backend and frontend GUI.
 * A locally deployed Docker compose cluster.
@@ -111,6 +119,431 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 ```
+
+### Using the FFI library
+
+The `sbs-ffi` crate provides a C-compatible dynamic library (`cdylib`) for embedding the solver in non-Rust environments such as Android (via JNI), iOS, or any language with C FFI support.
+
+The library exposes five functions:
+
+| Function | Description |
+| --- | --- |
+| `sbs_load_dictionary(path) → *mut Dictionary` | Load a dictionary file; returns opaque pointer (or null on failure) |
+| `sbs_free_dictionary(ptr)` | Free a dictionary pointer (null-safe) |
+| `sbs_solve(dict, json) → *mut c_char` | Solve a puzzle; accepts JSON, returns JSON |
+| `sbs_free_string(s)` | Free a string returned by `sbs_solve` (null-safe) |
+| `sbs_version() → *const c_char` | Return the library version (static, do not free) |
+
+**Request format** (JSON):
+
+```json
+{"letters": "abcdefg", "present": "a"}
+```
+
+**Response format** (JSON):
+
+```json
+{"words": ["bead", "cafe", "face", ...]}
+```
+
+On error, the response contains an `"error"` key instead of `"words"`.
+
+Build the FFI library:
+
+```bash
+cd sbs-ffi && cargo build --release
+```
+
+The shared library will be at `sbs-ffi/target/release/libsbs_ffi.dylib` (macOS), `.so` (Linux), or `.dll` (Windows).
+
+**Security notes:**
+
+* JSON input is limited to 1 MiB to prevent excessive memory allocation.
+* All pointer arguments are null-checked before use.
+* The dictionary pointer is opaque — the caller must not inspect or modify its contents.
+* Callers must respect the ownership contract: free each pointer exactly once with the matching free function.
+
+### Building for Android
+
+Cross-compile `sbs-ffi` for Android targets (arm64, x86_64, armv7) using `cargo-ndk`.
+
+One-time setup:
+
+```bash
+make setup-android
+```
+
+This installs the required Rust targets and `cargo-ndk`. An Android NDK must be installed separately (e.g., via Android Studio).
+
+Build:
+
+```bash
+make build-android
+```
+
+This produces shared libraries in `sbs-mobile/android/app/src/main/jniLibs/` for each ABI, ready for use by an Android project via JNI.
+
+Clean:
+
+```bash
+make clean-android
+```
+
+### React Native mobile app
+
+A React Native Android app that uses the FFI library for offline solving and optionally connects to the backend for online validation.
+
+#### Prerequisites
+
+Install these manually before running any `make` targets.
+
+**1. Java Development Kit (JDK 17)**
+
+Gradle requires JDK 17. Install it using your platform's package manager or download from [Adoptium](https://adoptium.net/).
+
+| Platform | Install command |
+| --- | --- |
+| macOS (Homebrew) | `brew install --cask temurin@17` |
+| Linux (apt) | `sudo apt install openjdk-17-jdk` |
+| Linux (dnf) | `sudo dnf install java-17-openjdk-devel` |
+| Windows (winget) | `winget install EclipseAdoptium.Temurin.17.JDK` |
+| Windows (Chocolatey) | `choco install temurin17` |
+
+Verify:
+
+```bash
+java -version   # should show 17.x
+```
+
+Set `JAVA_HOME` if not already configured:
+
+| Platform | Typical path |
+| --- | --- |
+| macOS | `/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home` |
+| Linux | `/usr/lib/jvm/java-17-openjdk-amd64` |
+| Windows | `C:\Program Files\Eclipse Adoptium\jdk-17...` |
+
+**2. Android Studio and SDK**
+
+Install [Android Studio](https://developer.android.com/studio). During setup, ensure the following are installed (available via Settings → Languages & Frameworks → Android SDK):
+
+* **SDK tab:**
+  * Android SDK Platform API 34 (or later)
+  * Android SDK Platform API 24 (minimum target)
+* **SDK Tools tab** (check "Show Package Details"):
+  * Android SDK Build-Tools (latest)
+  * Android SDK Command-line Tools (latest)
+  * Android SDK Platform-Tools
+  * Android Emulator
+  * NDK 27.1.12297006 — required for Rust cross-compilation via `cargo-ndk`
+  * NDK 29.x — required for Gradle/CMake app build (installed by default with current Android Studio)
+
+> **Note**
+> Two NDK versions are needed because `cargo-ndk` does not yet support NDK 29.
+> Both versions coexist under `$ANDROID_HOME/ndk/`.
+
+**3. Node.js 20+**
+
+Install from [nodejs.org](https://nodejs.org/) or via a version manager ([nvm](https://github.com/nvm-sh/nvm), [fnm](https://github.com/Schniz/fnm)).
+
+```bash
+node --version   # should show v20.x or later
+```
+
+**4. Rust toolchain**
+
+Install from [rustup.rs](https://rustup.rs/):
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+On Windows, use the [rustup-init.exe](https://rustup.rs/) installer instead.
+
+#### Environment variables
+
+Set `ANDROID_HOME` in your `.env` file (loaded automatically by the Makefile):
+
+| Platform | Typical `ANDROID_HOME` path |
+| --- | --- |
+| macOS | `$(HOME)/Library/Android/sdk` |
+| Linux | `$(HOME)/Android/Sdk` |
+| Windows | `%LOCALAPPDATA%\Android\Sdk` |
+
+```bash
+# .env (macOS example)
+ANDROID_HOME=$(HOME)/Library/Android/sdk
+```
+
+See `.env.template` for reference.
+
+Verify the SDK is reachable:
+
+```bash
+$ANDROID_HOME/platform-tools/adb version
+$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --version
+```
+
+> **Tip**
+> Add `$ANDROID_HOME/platform-tools` and `$ANDROID_HOME/cmdline-tools/latest/bin` to your `PATH` so `adb`, `emulator`, and `sdkmanager` are available directly.
+
+#### Setup
+
+```bash
+# Install Rust Android targets, cargo-ndk, and npm packages
+make setup-mobile
+```
+
+This runs `make setup-android` (Rust targets + `cargo-ndk`) followed by `npm install` in `sbs-mobile/`.
+
+#### Build and run
+
+```bash
+# Cross-compile FFI library and build the Android debug APK
+make check-mobile
+
+# Or run each step separately:
+make build-android    # cross-compile libsbs_ffi.so for arm64-v8a, x86_64, armeabi-v7a
+make build-mobile     # gradle assembleDebug
+
+# Run on a connected device or emulator
+make run-mobile
+
+# Run unit tests
+make test-mobile
+
+# Clean build artifacts
+make clean-mobile
+make clean-android
+```
+
+#### Building a standalone APK
+
+The default debug APK requires a running Metro bundler to load the JavaScript bundle. To build a self-contained APK with the JS bundle embedded (no Metro needed):
+
+```bash
+mkdir -p sbs-mobile/android/app/src/main/assets
+
+cd sbs-mobile && npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
+
+cd android && ./gradlew assembleDebug
+```
+
+The APK at `sbs-mobile/android/app/build/outputs/apk/debug/app-debug.apk` now works without a development server. This is the recommended approach for wireless deployment and for sharing the APK with others.
+
+> **Note**
+> `make run-mobile` starts Metro and deploys in one step, which works well over USB. For wireless ADB, `adb reverse` is not supported, so the standalone APK approach above is more reliable. Alternatively, set the Metro host to your machine's IP on the device: shake → Settings → Debug server host & port for device → enter `<your-ip>:8081`.
+
+#### Targets summary
+
+| Target | Description |
+| --- | --- |
+| `setup-mobile` | Install all mobile dependencies (Rust targets, cargo-ndk, npm) |
+| `build-android` | Cross-compile `sbs-ffi` for Android ABIs |
+| `build-mobile` | Build the Android debug APK |
+| `check-mobile` | Run `build-android` + `build-mobile` end-to-end |
+| `run-mobile` | Launch the app on a connected device or emulator |
+| `test-mobile` | Run mobile unit tests (Jest) |
+| `clean-mobile` | Remove Gradle build artifacts |
+| `clean-android` | Remove cross-compiled JNI libraries |
+
+#### Installing on a device
+
+**Google Play**
+
+The app will be available on Google Play (planned).
+
+**Sideloading via USB**
+
+1. Enable Developer Options on the device: Settings → About Phone → tap "Build number" 7 times.
+2. Enable USB Debugging: Settings → Developer Options → USB Debugging.
+3. Connect the device via USB and accept the debugging authorization prompt on the device.
+4. Verify the connection:
+   ```bash
+   adb devices
+   # should list your device as "device" (not "unauthorized" or "offline")
+   ```
+5. Build and install:
+   ```bash
+   # Option A: build + install + start Metro bundler in one step
+   make run-mobile
+
+   # Option B: install a previously built APK directly
+   make check-mobile
+   adb install sbs-mobile/android/app/build/outputs/apk/debug/app-debug.apk
+   ```
+
+**Sideloading via Wi-Fi (wireless ADB)**
+
+Wireless ADB lets you deploy and debug without a USB cable. The device and your development machine must be on the same Wi-Fi network.
+
+*Android 11+ (API 30+) — native wireless debugging:*
+
+1. Enable Developer Options (see above).
+2. Enable **Wireless debugging**: Settings → Developer Options → Wireless debugging → toggle on.
+3. Tap **Pair device with pairing code**. Note the IP address, port, and pairing code shown on the device.
+4. Pair from your machine:
+   ```bash
+   adb pair <ip>:<pairing-port>
+   # Enter the pairing code when prompted
+   ```
+5. Connect (use the port shown on the main Wireless debugging screen, not the pairing port):
+   ```bash
+   adb connect <ip>:<port>
+   ```
+6. Verify:
+   ```bash
+   adb devices
+   # should show <ip>:<port> device
+   ```
+7. Build and install as usual:
+   ```bash
+   make run-mobile
+   # or
+   adb install sbs-mobile/android/app/build/outputs/apk/debug/app-debug.apk
+   ```
+
+*Android 10 and below — TCP/IP mode (requires one-time USB connection):*
+
+1. Connect the device via USB and verify with `adb devices`.
+2. Switch ADB to TCP/IP mode:
+   ```bash
+   adb tcpip 5555
+   ```
+3. Find the device's IP address: Settings → Wi-Fi → tap the connected network → IP address.
+4. Disconnect the USB cable, then connect wirelessly:
+   ```bash
+   adb connect <ip>:5555
+   ```
+5. Verify with `adb devices` and install as usual.
+
+> **Note**
+> Wireless ADB resets on device reboot. Repeat the connect step after restarting the device.
+
+**Sideloading via file transfer**
+
+If ADB is not available, transfer the APK file directly to the device:
+
+1. Build the APK:
+   ```bash
+   make check-mobile
+   ```
+2. Transfer `sbs-mobile/android/app/build/outputs/apk/debug/app-debug.apk` to the device (via email, cloud storage, file sharing, etc.).
+3. On the device, open the APK file and allow installation from unknown sources when prompted.
+
+#### Running on an emulator
+
+The Android Emulator lets you test without a physical device. The emulator ships with Android Studio and is also available as a standalone command-line tool.
+
+**Creating a virtual device**
+
+*Option A — Android Studio GUI:*
+
+1. Open Android Studio → Device Manager (or Tools → Device Manager).
+2. Click **Create Virtual Device**.
+3. Choose a hardware profile (e.g., Pixel 7).
+4. Select a system image:
+   * For Apple Silicon (M1/M2/M3) Macs: choose an **arm64-v8a** image.
+   * For Intel Macs, Linux, or Windows: choose an **x86_64** image.
+   * API level 24 is the minimum; API 34 is recommended.
+5. Finish the wizard. The device appears in the Device Manager.
+
+*Option B — command line (`avdmanager`):*
+
+```bash
+# List available system images
+sdkmanager --list | grep "system-images"
+
+# Download a system image (example: API 34, Google APIs, x86_64)
+sdkmanager "system-images;android-34;google_apis;x86_64"
+
+# Create the AVD
+avdmanager create avd \
+  --name sbs-test \
+  --package "system-images;android-34;google_apis;x86_64" \
+  --device "pixel_7"
+```
+
+On Apple Silicon Macs, use an `arm64-v8a` image instead:
+
+```bash
+sdkmanager "system-images;android-34;google_apis;arm64-v8a"
+avdmanager create avd \
+  --name sbs-test \
+  --package "system-images;android-34;google_apis;arm64-v8a" \
+  --device "pixel_7"
+```
+
+**Hardware acceleration**
+
+The emulator requires hardware acceleration for acceptable performance.
+
+| Platform | Technology | Setup |
+| --- | --- | --- |
+| macOS | Apple Hypervisor Framework | Enabled automatically, no action needed. |
+| Linux | KVM | `sudo apt install qemu-kvm` (or equivalent), then add your user to the `kvm` group: `sudo usermod -aG kvm $USER` and re-login. Verify with `kvm-ok` or `ls -l /dev/kvm`. |
+| Windows | WHPX / Intel HAXM | Enable "Windows Hypervisor Platform" in Windows Features. Alternatively, install Intel HAXM from the Android SDK Manager (Intel CPUs only). Hyper-V must be disabled for HAXM; WHPX works alongside Hyper-V. |
+
+Without hardware acceleration the emulator will fall back to software rendering, which is very slow.
+
+**Launching the emulator**
+
+*From Android Studio:*
+
+Click the play button next to the device in Device Manager.
+
+*From the command line:*
+
+```bash
+# List available AVDs
+emulator -list-avds
+
+# Launch (replace sbs-test with your AVD name)
+emulator -avd sbs-test
+```
+
+The `emulator` binary lives at `$ANDROID_HOME/emulator/emulator`. Add `$ANDROID_HOME/emulator` to your `PATH` if the command is not found.
+
+| Platform | Typical emulator path |
+| --- | --- |
+| macOS | `~/Library/Android/sdk/emulator/emulator` |
+| Linux | `~/Android/Sdk/emulator/emulator` |
+| Windows | `%LOCALAPPDATA%\Android\Sdk\emulator\emulator.exe` |
+
+**Deploying to the emulator**
+
+Once the emulator is running:
+
+```bash
+# Verify the emulator is visible
+adb devices
+# should show "emulator-5554  device" (or similar)
+
+# Build and run
+make run-mobile
+```
+
+> **Tip**
+> The emulator's loopback address `10.0.2.2` maps to the host machine's `localhost`.
+> The default backend URL in the app (`http://10.0.2.2:8080`) connects to a backend running on the host. Start the backend with `make start-backend` if using online mode.
+
+#### App features
+
+* **Offline solving** — solves puzzles locally using the FFI library (no network needed).
+* **Online mode** — optionally sends requests to a configurable backend URL; falls back to offline on failure.
+* **Dictionary validation** — validates candidate words against an external dictionary API (Free Dictionary, Merriam-Webster, Wordnik, or a custom URL). Validation runs client-side and works in both offline and online modes. Validated words include definitions and dictionary links.
+* **Persistent API keys** — Merriam-Webster and Wordnik API keys are stored on-device and loaded automatically when the validator is selected.
+* **Input validation** — available letters are deduplicated; the required letter is constrained to one of the available letters; results clear on input change.
+
+### Mobile architecture
+
+![Mobile](architecture/mobile.png)
+
+The mobile app supports three execution paths:
+
+* **Offline solving** — `SbsSolver.ts` → `NativeModules` → `SbsSolverModule.kt` → JNI → `libsbs_ffi.so` → `dictionary.txt`. No network required.
+* **Online solving** — `api.ts` → `POST /solve` to a configurable backend server. Falls back to offline on failure.
+* **Client-side validation** — `validator.ts` → external dictionary APIs (Free Dictionary, Merriam-Webster, Wordnik, or a custom URL). Works in both offline and online modes.
 
 ### Using the CLI
 
@@ -423,7 +856,9 @@ This enables a pre-push hook that runs `make check` (format, lint, test) before 
 |-- charts/               # Helm charts
 |-- infra/                # GKE manifests (Ingress, SSL, certs)
 |-- sbs-backend/          # Rust backend & trie engine (Actix-web)
+|-- sbs-ffi/              # C-compatible FFI library (cdylib)
 |-- sbs-frontend/         # React frontend (Vite + TypeScript)
+|-- sbs-mobile/           # React Native Android app
 |-- docker-compose.yml    # Full stack Docker compose
 |-- target/               # Local build artifacts
 `-- ...                   # Other files
@@ -469,6 +904,9 @@ make format
 
 # Run format, lint, and test in sequence; local only.
 make check
+
+# Run mobile unit tests (Jest); local only.
+make test-mobile
 ```
 ---
 

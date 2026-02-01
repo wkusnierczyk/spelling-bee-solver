@@ -58,7 +58,16 @@ endif
 	version-set \
 	bump-patch \
 	bump-minor \
-	bump-major
+	bump-major \
+	setup-android \
+	build-android \
+	clean-android \
+	setup-mobile \
+	build-mobile \
+	check-mobile \
+	run-mobile \
+	clean-mobile \
+	test-mobile
 
 help: ## Show help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -98,6 +107,7 @@ version: ## Print current version
 version-set: ## Set version across all files: make version-set V=x.y.z
 	@test -n "$(V)" || (echo "Usage: make version-set V=x.y.z" && exit 1)
 	@sed -i '' 's/^version = ".*"/version = "$(V)"/' sbs-backend/Cargo.toml
+	@sed -i '' 's/^version = ".*"/version = "$(V)"/' sbs-ffi/Cargo.toml
 	@sed -i '' 's/"version": ".*"/"version": "$(V)"/' sbs-frontend/package.json
 	@sed -i '' 's/^appVersion: ".*"/appVersion: "$(V)"/' charts/minikube/Chart.yaml
 	@sed -i '' 's/^appVersion: ".*"/appVersion: "$(V)"/' charts/gcp/Chart.yaml
@@ -568,6 +578,76 @@ gcp-wake: ## Restore deployments from hibernation
 
 
 # --- Architecture Diagram Generation ---
+
+# --- Android Cross-Compilation ---
+
+ANDROID_JNILIBS = sbs-mobile/android/app/src/main/jniLibs
+
+setup-android: ## Install Android cross-compilation toolchains
+	$(call info, "Adding Android targets...")
+	rustup target add aarch64-linux-android x86_64-linux-android armv7-linux-androideabi
+	$(call info, "Installing cargo-ndk...")
+	cargo install cargo-ndk
+	$(call info, "Android setup complete.")
+
+ANDROID_NDK_VERSION ?= 27.1.12297006
+ANDROID_NDK_HOME_OVERRIDE = $(ANDROID_HOME)/ndk/$(ANDROID_NDK_VERSION)
+
+ANDROID_JNI_SRC = sbs-mobile/android/app/src/main/jni/sbs_jni.c
+NDK_TOOLCHAIN = $(ANDROID_NDK_HOME_OVERRIDE)/toolchains/llvm/prebuilt/darwin-x86_64/bin
+
+build-android: ## Cross-compile sbs-ffi and JNI bridge for Android (arm64, x86_64, armv7)
+	$(call info, "Building sbs-ffi for Android targets...")
+	cd sbs-ffi && ANDROID_NDK_HOME=$(ANDROID_NDK_HOME_OVERRIDE) cargo ndk -t arm64-v8a -t x86_64 -t armeabi-v7a -P 24 -o ../$(ANDROID_JNILIBS) build --release
+	$(call info, "Building JNI bridge for Android targets...")
+	$(NDK_TOOLCHAIN)/aarch64-linux-android24-clang -shared -fPIC -o $(ANDROID_JNILIBS)/arm64-v8a/libsbs_jni.so $(ANDROID_JNI_SRC) \
+		-I$(ANDROID_NDK_HOME_OVERRIDE)/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include \
+		-L$(ANDROID_JNILIBS)/arm64-v8a -lsbs_ffi -llog
+	$(NDK_TOOLCHAIN)/x86_64-linux-android24-clang -shared -fPIC -o $(ANDROID_JNILIBS)/x86_64/libsbs_jni.so $(ANDROID_JNI_SRC) \
+		-I$(ANDROID_NDK_HOME_OVERRIDE)/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include \
+		-L$(ANDROID_JNILIBS)/x86_64 -lsbs_ffi -llog
+	$(NDK_TOOLCHAIN)/armv7a-linux-androideabi24-clang -shared -fPIC -o $(ANDROID_JNILIBS)/armeabi-v7a/libsbs_jni.so $(ANDROID_JNI_SRC) \
+		-I$(ANDROID_NDK_HOME_OVERRIDE)/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include \
+		-L$(ANDROID_JNILIBS)/armeabi-v7a -lsbs_ffi -llog
+	$(call info, "Android build complete. Output in $(ANDROID_JNILIBS)")
+
+clean-android: ## Remove Android JNI libraries
+	$(call info, "Cleaning Android JNI libraries...")
+	rm -rf $(ANDROID_JNILIBS)
+	$(call info, "Android clean complete.")
+
+
+# --- React Native Mobile ---
+
+SBS_MOBILE_DIR = sbs-mobile
+
+setup-mobile: setup-android ## Install all mobile dependencies (Rust targets, cargo-ndk, npm)
+	$(call info, "Installing React Native dependencies...")
+	cd $(SBS_MOBILE_DIR) && npm install
+	$(call info, "Mobile setup complete. Ensure ANDROID_HOME is set in .env or environment.")
+
+build-mobile: ## Build the Android debug APK
+	$(call info, "Building Android debug APK...")
+	cd $(SBS_MOBILE_DIR)/android && ./gradlew assembleDebug
+	$(call info, "APK built at $(SBS_MOBILE_DIR)/android/app/build/outputs/apk/debug/")
+
+run-mobile: ## Run the React Native app on a connected Android device/emulator
+	$(call info, "Starting React Native for Android...")
+	cd $(SBS_MOBILE_DIR) && npx react-native run-android
+
+check-mobile: build-android build-mobile ## Verify mobile builds (requires Android SDK + NDK)
+
+test-mobile: ## Run mobile unit tests
+	$(call info, "Running mobile tests...")
+	cd $(SBS_MOBILE_DIR) && npx jest --ci --forceExit
+
+clean-mobile: ## Clean mobile build artifacts (Gradle, bundled JS)
+	$(call info, "Cleaning mobile build artifacts...")
+	cd $(SBS_MOBILE_DIR)/android && ./gradlew clean
+	rm -rf $(SBS_MOBILE_DIR)/android/app/build
+	rm -f $(SBS_MOBILE_DIR)/android/app/src/main/assets/index.android.bundle
+	$(call info, "Mobile clean complete.")
+
 
 generate-diagrams: ## Build all architecture diagrams with mmdc
 	$(call info, "Building architecture diagrams...")

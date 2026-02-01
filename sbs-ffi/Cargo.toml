@@ -1,0 +1,16 @@
+[package]
+name = "sbs-ffi"
+version = "0.1.0"
+edition = "2021"
+description = "FFI bindings for Spelling Bee Solver"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+sbs = { path = "../sbs-backend", default-features = false }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[dev-dependencies]
+tempfile = "3.3"

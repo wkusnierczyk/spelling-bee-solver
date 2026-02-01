@@ -1,7 +1,9 @@
 //! CLI entry point for Spelling Bee Solver.
 
 use clap::Parser;
-use sbs::{create_validator, Config, Dictionary, Solver, ValidatorKind};
+#[cfg(feature = "validator")]
+use sbs::{create_validator, ValidatorKind};
+use sbs::{Config, Dictionary, Solver};
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
@@ -23,13 +25,16 @@ struct Args {
     dictionary: Option<PathBuf>,
     #[arg(short, long)]
     output: Option<String>,
+    #[cfg(feature = "validator")]
     #[arg(
         long,
         help = "Validator: free-dictionary, merriam-webster, wordnik, custom"
     )]
     validator: Option<String>,
+    #[cfg(feature = "validator")]
     #[arg(long, help = "API key for validators that require one")]
     api_key: Option<String>,
+    #[cfg(feature = "validator")]
     #[arg(long, help = "Custom validator URL (use with --validator custom)")]
     validator_url: Option<String>,
     #[arg(long)]
@@ -78,6 +83,7 @@ fn main() {
     }
 
     // Parse validator from CLI flag
+    #[cfg(feature = "validator")]
     let validator_kind = if let Some(v) = args.validator {
         match v.parse::<ValidatorKind>() {
             Ok(kind) => Some(kind),
@@ -90,7 +96,9 @@ fn main() {
         config.validator.clone()
     };
 
+    #[cfg(feature = "validator")]
     let api_key = args.api_key.or(config.api_key.clone());
+    #[cfg(feature = "validator")]
     let validator_url = args.validator_url.or(config.validator_url.clone());
 
     if config.letters.is_none() || config.present.is_none() {
@@ -114,7 +122,8 @@ fn main() {
             let mut sorted_words: Vec<_> = words.into_iter().collect();
             sorted_words.sort();
 
-            if let Some(kind) = validator_kind {
+            #[cfg(feature = "validator")]
+            let validated = if let Some(kind) = validator_kind {
                 let validator =
                     match create_validator(&kind, api_key.as_deref(), validator_url.as_deref()) {
                         Ok(v) => v,
@@ -132,8 +141,8 @@ fn main() {
                     kind.display_name()
                 );
 
-                if let Some(out_path) = config.output {
-                    match File::create(&out_path) {
+                if let Some(ref out_path) = config.output {
+                    match File::create(out_path) {
                         Ok(mut file) => {
                             for entry in &summary.entries {
                                 if let Err(e) = writeln!(
@@ -156,28 +165,36 @@ fn main() {
                         println!("{}\t{}\t{}", entry.word, entry.definition, entry.url);
                     }
                 }
+                true
             } else {
-                eprintln!("Generated {} words.", sorted_words.len());
+                false
+            };
 
-                if let Some(out_path) = config.output {
-                    match File::create(&out_path) {
-                        Ok(mut file) => {
-                            for w in &sorted_words {
-                                if let Err(e) = writeln!(file, "{}", w) {
-                                    eprintln!("Write error: {}", e);
-                                    process::exit(1);
-                                }
+            #[cfg(feature = "validator")]
+            if validated {
+                return;
+            }
+
+            eprintln!("Generated {} words.", sorted_words.len());
+
+            if let Some(out_path) = config.output {
+                match File::create(&out_path) {
+                    Ok(mut file) => {
+                        for w in &sorted_words {
+                            if let Err(e) = writeln!(file, "{}", w) {
+                                eprintln!("Write error: {}", e);
+                                process::exit(1);
                             }
                         }
-                        Err(e) => {
-                            eprintln!("Failed to create output file '{}': {}", out_path, e);
-                            process::exit(1);
-                        }
                     }
-                } else {
-                    for w in &sorted_words {
-                        println!("{}", w);
+                    Err(e) => {
+                        eprintln!("Failed to create output file '{}': {}", out_path, e);
+                        process::exit(1);
                     }
+                }
+            } else {
+                for w in &sorted_words {
+                    println!("{}", w);
                 }
             }
         }

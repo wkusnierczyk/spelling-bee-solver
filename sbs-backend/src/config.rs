@@ -1,6 +1,7 @@
 //! Configuration management.
 
 use crate::error::SbsError;
+#[cfg(feature = "validator")]
 use crate::validator::ValidatorKind;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -25,9 +26,12 @@ pub struct Config {
     pub dictionary: PathBuf,
 
     // Validator selection
+    #[cfg(feature = "validator")]
     pub validator: Option<ValidatorKind>,
+    #[cfg(feature = "validator")]
     #[serde(rename = "api-key")]
     pub api_key: Option<String>,
+    #[cfg(feature = "validator")]
     #[serde(rename = "validator-url")]
     pub validator_url: Option<String>,
 }
@@ -46,8 +50,11 @@ impl Config {
             output: None,
             repeats: None,
             dictionary: default_dict_path(),
+            #[cfg(feature = "validator")]
             validator: None,
+            #[cfg(feature = "validator")]
             api_key: None,
+            #[cfg(feature = "validator")]
             validator_url: None,
         }
     }
