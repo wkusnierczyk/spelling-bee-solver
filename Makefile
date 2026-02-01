@@ -109,6 +109,8 @@ version-set: ## Set version across all files: make version-set V=x.y.z
 	@sed -i '' 's/^version = ".*"/version = "$(V)"/' sbs-backend/Cargo.toml
 	@sed -i '' 's/^version = ".*"/version = "$(V)"/' sbs-ffi/Cargo.toml
 	@sed -i '' 's/"version": ".*"/"version": "$(V)"/' sbs-frontend/package.json
+	@sed -i '' 's/"version": ".*"/"version": "$(V)"/' sbs-mobile/package.json
+	@sed -i '' 's/versionName ".*"/versionName "$(V)"/' sbs-mobile/android/app/build.gradle
 	@sed -i '' 's/^appVersion: ".*"/appVersion: "$(V)"/' charts/minikube/Chart.yaml
 	@sed -i '' 's/^appVersion: ".*"/appVersion: "$(V)"/' charts/gcp/Chart.yaml
 	@sed -i '' 's/├─ version:   .*/├─ version:   $(V)/' README.md
