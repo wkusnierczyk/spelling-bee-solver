@@ -37,7 +37,7 @@ export default function LetterInput({
         <Text style={styles.label}>Required Letter</Text>
         <TextInput
           style={styles.input}
-          placeholder="e.g. a"
+          placeholder={letters.length > 0 ? `e.g. ${letters[0]}` : ''}
           placeholderTextColor="#999"
           value={present}
           onChangeText={onPresentChange}

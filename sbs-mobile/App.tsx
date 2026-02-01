@@ -11,19 +11,20 @@ import {
 import {SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
 import LetterInput from './src/components/LetterInput';
 import ModeToggle from './src/components/ModeToggle';
+import ValidatorPicker, {ValidatorKind} from './src/components/ValidatorPicker';
 import {ResultItem, isWordEntry} from './src/components/ResultsList';
 import {solve} from './src/native/SbsSolver';
 import {solveOnline} from './src/services/api';
+import {validateWords} from './src/services/validator';
 import {Linking} from 'react-native';
-import {TouchableOpacity} from 'react-native';
 
 function WordCard({item}: {item: ResultItem}) {
   if (isWordEntry(item)) {
     return (
       <View style={styles.card}>
-        <TouchableOpacity onPress={() => Linking.openURL(item.url)}>
+        <Pressable onPress={() => Linking.openURL(item.url)}>
           <Text style={styles.wordLink}>{item.word}</Text>
-        </TouchableOpacity>
+        </Pressable>
         <Text style={styles.definition}>{item.definition}</Text>
       </View>
     );
@@ -41,21 +42,54 @@ function App() {
   const [repeats, setRepeats] = useState('');
   const [online, setOnline] = useState(false);
   const [backendUrl, setBackendUrl] = useState('http://10.0.2.2:8080');
+  const [validator, setValidator] = useState<ValidatorKind>('');
+  const [apiKey, setApiKey] = useState('');
+  const [validatorUrl, setValidatorUrl] = useState('');
   const [results, setResults] = useState<ResultItem[]>([]);
   const [candidateCount, setCandidateCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const presentNotInLetters = present.length > 0 && letters.length > 0 && !letters.includes(present);
-  const isValid = letters.length > 0 && present.length > 0 && !presentNotInLetters;
+  const clearResults = () => {
+    setResults([]);
+    setCandidateCount(null);
+    setError(null);
+    setProgress('');
+  };
+
+  const handleLettersChange = (value: string) => {
+    const unique = [...new Set(value.split(''))].join('');
+    setLetters(unique);
+    if (present && !unique.includes(present)) {
+      setPresent('');
+    }
+    clearResults();
+  };
+
+  const handlePresentChange = (value: string) => {
+    if (value.length === 0 || letters.includes(value)) {
+      setPresent(value);
+      clearResults();
+    }
+  };
+
+  const handleRepeatsChange = (value: string) => {
+    setRepeats(value);
+    clearResults();
+  };
+
+  const isValid = letters.length > 0 && present.length > 0;
 
   const handleSolve = async () => {
     setLoading(true);
     setError(null);
     setResults([]);
     setCandidateCount(null);
+    setProgress('');
 
     const repeatsNum = repeats ? parseInt(repeats, 10) : 0;
+    let words: string[] = [];
 
     if (online) {
       try {
@@ -64,6 +98,9 @@ function App() {
           letters,
           present,
           repeatsNum || null,
+          validator || undefined,
+          apiKey || undefined,
+          validatorUrl || undefined,
         );
         setResults(response.results);
         setCandidateCount(response.candidateCount);
@@ -77,15 +114,39 @@ function App() {
     }
 
     try {
-      const words = await solve(letters, present, repeatsNum);
-      setResults(words);
-      setCandidateCount(words.length);
+      words = await solve(letters, present, repeatsNum);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Solve failed';
       setError(message);
-    } finally {
       setLoading(false);
+      return;
     }
+
+    setCandidateCount(words.length);
+
+    if (validator && words.length > 0) {
+      setProgress(`Validating: 0 / ${words.length}`);
+      try {
+        const result = await validateWords(
+          words,
+          validator,
+          apiKey,
+          validatorUrl,
+          (done, total) => setProgress(`Validating: ${done} / ${total}`),
+        );
+        setResults(result.entries);
+        setCandidateCount(result.candidates);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Validation failed';
+        setError(message);
+        setResults(words);
+      }
+    } else {
+      setResults(words);
+    }
+
+    setProgress('');
+    setLoading(false);
   };
 
   const header = candidateCount !== null
@@ -100,9 +161,18 @@ function App() {
         letters={letters}
         present={present}
         repeats={repeats}
-        onLettersChange={setLetters}
-        onPresentChange={setPresent}
-        onRepeatsChange={setRepeats}
+        onLettersChange={handleLettersChange}
+        onPresentChange={handlePresentChange}
+        onRepeatsChange={handleRepeatsChange}
+      />
+
+      <ValidatorPicker
+        validator={validator}
+        apiKey={apiKey}
+        validatorUrl={validatorUrl}
+        onValidatorChange={setValidator}
+        onApiKeyChange={setApiKey}
+        onValidatorUrlChange={setValidatorUrl}
       />
 
       <ModeToggle
@@ -123,9 +193,7 @@ function App() {
         )}
       </Pressable>
 
-      {presentNotInLetters && (
-        <Text style={styles.warning}>Required letter not in available letters</Text>
-      )}
+      {progress !== '' && <Text style={styles.progress}>{progress}</Text>}
 
       {error && <Text style={styles.error}>{error}</Text>}
 
@@ -148,6 +216,7 @@ function App() {
           }
           renderItem={({item}) => <WordCard item={item} />}
           ListHeaderComponent={ListHeader}
+          keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.container}
         />
       </SafeAreaView>
@@ -186,9 +255,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  warning: {
-    color: '#e67e00',
+  progress: {
+    color: '#007bff',
     fontSize: 14,
+    textAlign: 'center',
     marginBottom: 12,
   },
   error: {

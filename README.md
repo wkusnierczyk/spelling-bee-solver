@@ -288,12 +288,11 @@ Build the debug APK and install it on a connected device.
 
 #### App features
 
-The app supports two modes:
-
-* **Offline** — solves puzzles locally using the FFI library (no network needed).
-* **Online** — sends requests to a configurable backend URL for validated results with definitions.
-
-If the online request fails, the app falls back to offline solving automatically.
+* **Offline solving** — solves puzzles locally using the FFI library (no network needed).
+* **Online mode** — optionally sends requests to a configurable backend URL; falls back to offline on failure.
+* **Dictionary validation** — validates candidate words against an external dictionary API (Free Dictionary, Merriam-Webster, Wordnik, or a custom URL). Validation runs client-side and works in both offline and online modes. Validated words include definitions and dictionary links.
+* **Persistent API keys** — Merriam-Webster and Wordnik API keys are stored on-device and loaded automatically when the validator is selected.
+* **Input validation** — available letters are deduplicated; the required letter is constrained to one of the available letters; results clear on input change.
 
 ### Using the CLI
 
