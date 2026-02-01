@@ -588,9 +588,12 @@ setup-android: ## Install Android cross-compilation toolchains
 	cargo install cargo-ndk
 	$(call info, "Android setup complete.")
 
+ANDROID_NDK_VERSION ?= 27.1.12297006
+ANDROID_NDK_HOME_OVERRIDE = $(ANDROID_HOME)/ndk/$(ANDROID_NDK_VERSION)
+
 build-android: ## Cross-compile sbs-ffi for Android (arm64, x86_64, armv7)
 	$(call info, "Building sbs-ffi for Android targets...")
-	cargo ndk -t arm64-v8a -t x86_64 -t armeabi-v7a -p 24 -o $(ANDROID_JNILIBS) build -p sbs-ffi --release
+	cd sbs-ffi && ANDROID_NDK_HOME=$(ANDROID_NDK_HOME_OVERRIDE) cargo ndk -t arm64-v8a -t x86_64 -t armeabi-v7a -P 24 -o ../$(ANDROID_JNILIBS) build --release
 	$(call info, "Android build complete. Output in $(ANDROID_JNILIBS)")
 
 clean-android: ## Remove Android JNI libraries
