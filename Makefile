@@ -66,7 +66,8 @@ endif
 	build-mobile \
 	check-mobile \
 	run-mobile \
-	clean-mobile
+	clean-mobile \
+	test-mobile
 
 help: ## Show help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -635,6 +636,10 @@ run-mobile: ## Run the React Native app on a connected Android device/emulator
 	cd $(SBS_MOBILE_DIR) && npx react-native run-android
 
 check-mobile: build-android build-mobile ## Verify mobile builds (requires Android SDK + NDK)
+
+test-mobile: ## Run mobile unit tests
+	$(call info, "Running mobile tests...")
+	cd $(SBS_MOBILE_DIR) && npx jest --ci --forceExit
 
 clean-mobile: ## Clean mobile build artifacts
 	$(call info, "Cleaning mobile build artifacts...")

@@ -252,6 +252,7 @@ make clean-android
 | `run-mobile` | Launch the app on a connected device or emulator |
 | `clean-mobile` | Remove Gradle build artifacts |
 | `clean-android` | Remove cross-compiled JNI libraries |
+| `test-mobile` | Run mobile unit tests (Jest) |
 
 #### Installing on a device
 
@@ -293,6 +294,16 @@ Build the debug APK and install it on a connected device.
 * **Dictionary validation** — validates candidate words against an external dictionary API (Free Dictionary, Merriam-Webster, Wordnik, or a custom URL). Validation runs client-side and works in both offline and online modes. Validated words include definitions and dictionary links.
 * **Persistent API keys** — Merriam-Webster and Wordnik API keys are stored on-device and loaded automatically when the validator is selected.
 * **Input validation** — available letters are deduplicated; the required letter is constrained to one of the available letters; results clear on input change.
+
+### Mobile architecture
+
+![Mobile](architecture/mobile.png)
+
+The mobile app supports three execution paths:
+
+* **Offline solving** — `SbsSolver.ts` → `NativeModules` → `SbsSolverModule.kt` → JNI → `libsbs_ffi.so` → `dictionary.txt`. No network required.
+* **Online solving** — `api.ts` → `POST /solve` to a configurable backend server. Falls back to offline on failure.
+* **Client-side validation** — `validator.ts` → external dictionary APIs (Free Dictionary, Merriam-Webster, Wordnik, or a custom URL). Works in both offline and online modes.
 
 ### Using the CLI
 
@@ -653,6 +664,9 @@ make format
 
 # Run format, lint, and test in sequence; local only.
 make check
+
+# Run mobile unit tests (Jest); local only.
+make test-mobile
 ```
 ---
 
