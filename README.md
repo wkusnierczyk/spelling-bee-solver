@@ -59,6 +59,7 @@ A future release may expose the API publicly, to make interaction with the front
   - [Using the Rust library](#using-the-rust-library)
   - [Using the FFI library](#using-the-ffi-library)
   - [Building for Android](#building-for-android)
+  - [React Native mobile app](#react-native-mobile-app)
   - [Using the CLI](#using-the-cli)
   - [Local native deployment](#local-native-deployment)
   - [Local deployment with Docker](#local-deployment-with-docker)
@@ -183,6 +184,33 @@ Clean:
 ```bash
 make clean-android
 ```
+
+### React Native mobile app
+
+A React Native Android app that uses the FFI library for offline solving and optionally connects to the backend for online validation.
+
+Setup:
+
+```bash
+# Install dependencies
+make setup-mobile
+
+# Build the Android debug APK (requires Android SDK)
+make build-mobile
+
+# Run on a connected device or emulator
+make run-mobile
+
+# Clean build artifacts
+make clean-mobile
+```
+
+The app supports two modes:
+
+* **Offline** — solves puzzles locally using the FFI library (no network needed).
+* **Online** — sends requests to a configurable backend URL for validated results with definitions.
+
+If the online request fails, the app falls back to offline solving automatically.
 
 ### Using the CLI
 
@@ -497,6 +525,7 @@ This enables a pre-push hook that runs `make check` (format, lint, test) before 
 |-- sbs-backend/          # Rust backend & trie engine (Actix-web)
 |-- sbs-ffi/              # C-compatible FFI library (cdylib)
 |-- sbs-frontend/         # React frontend (Vite + TypeScript)
+|-- sbs-mobile/           # React Native Android app
 |-- docker-compose.yml    # Full stack Docker compose
 |-- target/               # Local build artifacts
 `-- ...                   # Other files

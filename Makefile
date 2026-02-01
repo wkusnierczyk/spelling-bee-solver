@@ -61,7 +61,11 @@ endif
 	bump-major \
 	setup-android \
 	build-android \
-	clean-android
+	clean-android \
+	setup-mobile \
+	build-mobile \
+	run-mobile \
+	clean-mobile
 
 help: ## Show help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -593,6 +597,31 @@ clean-android: ## Remove Android JNI libraries
 	$(call info, "Cleaning Android JNI libraries...")
 	rm -rf $(ANDROID_JNILIBS)
 	$(call info, "Android clean complete.")
+
+
+# --- React Native Mobile ---
+
+SBS_MOBILE_DIR = sbs-mobile
+
+setup-mobile: ## Install React Native dependencies
+	$(call info, "Installing mobile dependencies...")
+	cd $(SBS_MOBILE_DIR) && npm install
+	$(call info, "Mobile setup complete.")
+
+build-mobile: ## Build the Android debug APK
+	$(call info, "Building Android debug APK...")
+	cd $(SBS_MOBILE_DIR)/android && ./gradlew assembleDebug
+	$(call info, "APK built at $(SBS_MOBILE_DIR)/android/app/build/outputs/apk/debug/")
+
+run-mobile: ## Run the React Native app on a connected Android device/emulator
+	$(call info, "Starting React Native for Android...")
+	cd $(SBS_MOBILE_DIR) && npx react-native run-android
+
+clean-mobile: ## Clean mobile build artifacts
+	$(call info, "Cleaning mobile build artifacts...")
+	cd $(SBS_MOBILE_DIR)/android && ./gradlew clean
+	rm -rf $(SBS_MOBILE_DIR)/android/app/build
+	$(call info, "Mobile clean complete.")
 
 
 generate-diagrams: ## Build all architecture diagrams with mmdc
