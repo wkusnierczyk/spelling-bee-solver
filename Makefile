@@ -607,10 +607,10 @@ clean-android: ## Remove Android JNI libraries
 
 SBS_MOBILE_DIR = sbs-mobile
 
-setup-mobile: ## Install React Native dependencies
-	$(call info, "Installing mobile dependencies...")
+setup-mobile: setup-android ## Install all mobile dependencies (Rust targets, cargo-ndk, npm)
+	$(call info, "Installing React Native dependencies...")
 	cd $(SBS_MOBILE_DIR) && npm install
-	$(call info, "Mobile setup complete.")
+	$(call info, "Mobile setup complete. Ensure ANDROID_HOME is set in .env or environment.")
 
 build-mobile: ## Build the Android debug APK
 	$(call info, "Building Android debug APK...")

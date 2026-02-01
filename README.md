@@ -79,6 +79,7 @@ The tool can be used as:
 
 * A rust library, that can be used in client rust code.
 * A C-compatible FFI library (`sbs-ffi`), for embedding in mobile apps and other non-Rust environments.
+* A React Native Android app (`sbs-mobile`), with offline FFI solving and optional online validation.
 * A CLI (command-line interface) tool that can be installed on a local machine and executed in the terminal.
 * A locally deployed backend and frontend GUI.
 * A locally deployed Docker compose cluster.
@@ -189,21 +190,69 @@ make clean-android
 
 A React Native Android app that uses the FFI library for offline solving and optionally connects to the backend for online validation.
 
-Setup:
+#### Prerequisites
+
+* [Android Studio](https://developer.android.com/studio) with:
+  * Android SDK (API 24+)
+  * NDK 27.1.12297006 (for Rust cross-compilation via `cargo-ndk`)
+  * NDK 29.x (for Gradle/CMake app build — installed by default with current Android Studio)
+* Node.js 18+
+* Rust toolchain
+
+> **Note**
+> Two NDK versions are needed because `cargo-ndk` does not yet support NDK 29.
+> Install NDK 27 via Android Studio: Settings → Languages & Frameworks → Android SDK → SDK Tools → Show Package Details → NDK (Side by side) → 27.1.12297006.
+> Both versions coexist under `$ANDROID_HOME/ndk/`.
+
+#### Environment variables
+
+Set `ANDROID_HOME` in your `.env` file (loaded automatically by the Makefile):
 
 ```bash
-# Install dependencies
-make setup-mobile
+# .env
+ANDROID_HOME=$(HOME)/Library/Android/sdk
+```
 
-# Build the Android debug APK (requires Android SDK)
-make build-mobile
+See `.env.template` for reference.
+
+#### Setup
+
+```bash
+# Install all dependencies: Rust Android targets, cargo-ndk, and npm packages
+make setup-mobile
+```
+
+#### Build and run
+
+```bash
+# Cross-compile FFI library and build the Android debug APK
+make check-mobile
+
+# Or run each step separately:
+make build-android    # cross-compile libsbs_ffi.so for arm64-v8a, x86_64, armeabi-v7a
+make build-mobile     # gradle assembleDebug
 
 # Run on a connected device or emulator
 make run-mobile
 
 # Clean build artifacts
 make clean-mobile
+make clean-android
 ```
+
+#### Targets summary
+
+| Target | Description |
+| --- | --- |
+| `setup-mobile` | Install all mobile dependencies (Rust targets, cargo-ndk, npm) |
+| `build-android` | Cross-compile `sbs-ffi` for Android ABIs |
+| `build-mobile` | Build the Android debug APK |
+| `check-mobile` | Run `build-android` + `build-mobile` end-to-end |
+| `run-mobile` | Launch the app on a connected device or emulator |
+| `clean-mobile` | Remove Gradle build artifacts |
+| `clean-android` | Remove cross-compiled JNI libraries |
+
+#### App features
 
 The app supports two modes:
 
