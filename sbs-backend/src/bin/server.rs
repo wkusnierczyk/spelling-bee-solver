@@ -6,7 +6,9 @@
 
 use actix_cors::Cors;
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
-use sbs::{create_validator, Config, Dictionary, Solver};
+#[cfg(feature = "validator")]
+use sbs::create_validator;
+use sbs::{Config, Dictionary, Solver};
 use std::env;
 use std::sync::Arc;
 
@@ -28,8 +30,11 @@ async fn solve_puzzle(data: web::Data<AppState>, config_json: web::Json<Config>)
         return HttpResponse::BadRequest().body("Missing letters or present char");
     }
 
+    #[cfg(feature = "validator")]
     let validator_kind = config.validator.clone();
+    #[cfg(feature = "validator")]
     let api_key = config.api_key.clone();
+    #[cfg(feature = "validator")]
     let validator_url = config.validator_url.clone();
 
     let solver = Solver::new(config);
@@ -40,6 +45,7 @@ async fn solve_puzzle(data: web::Data<AppState>, config_json: web::Json<Config>)
             sorted.sort();
 
             // If a validator is specified, enrich results with definitions and URLs
+            #[cfg(feature = "validator")]
             if let Some(kind) = validator_kind {
                 let validator =
                     match create_validator(&kind, api_key.as_deref(), validator_url.as_deref()) {
@@ -56,10 +62,10 @@ async fn solve_puzzle(data: web::Data<AppState>, config_json: web::Json<Config>)
                     summary.validated,
                     kind.display_name()
                 );
-                HttpResponse::Ok().json(summary)
-            } else {
-                HttpResponse::Ok().json(sorted)
+                return HttpResponse::Ok().json(summary);
             }
+
+            HttpResponse::Ok().json(sorted)
         }
         Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
     }

@@ -58,7 +58,10 @@ endif
 	version-set \
 	bump-patch \
 	bump-minor \
-	bump-major
+	bump-major \
+	setup-android \
+	build-android \
+	clean-android
 
 help: ## Show help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -98,6 +101,7 @@ version: ## Print current version
 version-set: ## Set version across all files: make version-set V=x.y.z
 	@test -n "$(V)" || (echo "Usage: make version-set V=x.y.z" && exit 1)
 	@sed -i '' 's/^version = ".*"/version = "$(V)"/' sbs-backend/Cargo.toml
+	@sed -i '' 's/^version = ".*"/version = "$(V)"/' sbs-ffi/Cargo.toml
 	@sed -i '' 's/"version": ".*"/"version": "$(V)"/' sbs-frontend/package.json
 	@sed -i '' 's/^appVersion: ".*"/appVersion: "$(V)"/' charts/minikube/Chart.yaml
 	@sed -i '' 's/^appVersion: ".*"/appVersion: "$(V)"/' charts/gcp/Chart.yaml
@@ -568,6 +572,28 @@ gcp-wake: ## Restore deployments from hibernation
 
 
 # --- Architecture Diagram Generation ---
+
+# --- Android Cross-Compilation ---
+
+ANDROID_JNILIBS = sbs-mobile/android/app/src/main/jniLibs
+
+setup-android: ## Install Android cross-compilation toolchains
+	$(call info, "Adding Android targets...")
+	rustup target add aarch64-linux-android x86_64-linux-android armv7-linux-androideabi
+	$(call info, "Installing cargo-ndk...")
+	cargo install cargo-ndk
+	$(call info, "Android setup complete.")
+
+build-android: ## Cross-compile sbs-ffi for Android (arm64, x86_64, armv7)
+	$(call info, "Building sbs-ffi for Android targets...")
+	cargo ndk -t arm64-v8a -t x86_64 -t armeabi-v7a -p 24 -o $(ANDROID_JNILIBS) build -p sbs-ffi --release
+	$(call info, "Android build complete. Output in $(ANDROID_JNILIBS)")
+
+clean-android: ## Remove Android JNI libraries
+	$(call info, "Cleaning Android JNI libraries...")
+	rm -rf $(ANDROID_JNILIBS)
+	$(call info, "Android clean complete.")
+
 
 generate-diagrams: ## Build all architecture diagrams with mmdc
 	$(call info, "Building architecture diagrams...")
