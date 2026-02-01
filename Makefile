@@ -592,9 +592,22 @@ setup-android: ## Install Android cross-compilation toolchains
 ANDROID_NDK_VERSION ?= 27.1.12297006
 ANDROID_NDK_HOME_OVERRIDE = $(ANDROID_HOME)/ndk/$(ANDROID_NDK_VERSION)
 
-build-android: ## Cross-compile sbs-ffi for Android (arm64, x86_64, armv7)
+ANDROID_JNI_SRC = sbs-mobile/android/app/src/main/jni/sbs_jni.c
+NDK_TOOLCHAIN = $(ANDROID_NDK_HOME_OVERRIDE)/toolchains/llvm/prebuilt/darwin-x86_64/bin
+
+build-android: ## Cross-compile sbs-ffi and JNI bridge for Android (arm64, x86_64, armv7)
 	$(call info, "Building sbs-ffi for Android targets...")
 	cd sbs-ffi && ANDROID_NDK_HOME=$(ANDROID_NDK_HOME_OVERRIDE) cargo ndk -t arm64-v8a -t x86_64 -t armeabi-v7a -P 24 -o ../$(ANDROID_JNILIBS) build --release
+	$(call info, "Building JNI bridge for Android targets...")
+	$(NDK_TOOLCHAIN)/aarch64-linux-android24-clang -shared -fPIC -o $(ANDROID_JNILIBS)/arm64-v8a/libsbs_jni.so $(ANDROID_JNI_SRC) \
+		-I$(ANDROID_NDK_HOME_OVERRIDE)/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include \
+		-L$(ANDROID_JNILIBS)/arm64-v8a -lsbs_ffi -llog
+	$(NDK_TOOLCHAIN)/x86_64-linux-android24-clang -shared -fPIC -o $(ANDROID_JNILIBS)/x86_64/libsbs_jni.so $(ANDROID_JNI_SRC) \
+		-I$(ANDROID_NDK_HOME_OVERRIDE)/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include \
+		-L$(ANDROID_JNILIBS)/x86_64 -lsbs_ffi -llog
+	$(NDK_TOOLCHAIN)/armv7a-linux-androideabi24-clang -shared -fPIC -o $(ANDROID_JNILIBS)/armeabi-v7a/libsbs_jni.so $(ANDROID_JNI_SRC) \
+		-I$(ANDROID_NDK_HOME_OVERRIDE)/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include \
+		-L$(ANDROID_JNILIBS)/armeabi-v7a -lsbs_ffi -llog
 	$(call info, "Android build complete. Output in $(ANDROID_JNILIBS)")
 
 clean-android: ## Remove Android JNI libraries

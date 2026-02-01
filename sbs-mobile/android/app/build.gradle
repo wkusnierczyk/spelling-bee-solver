@@ -79,12 +79,6 @@ android {
 
     namespace "com.sbsmobile"
 
-    externalNativeBuild {
-        cmake {
-            path "src/main/jni/CMakeLists.txt"
-        }
-    }
-
     defaultConfig {
         applicationId "com.sbsmobile"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -93,11 +87,6 @@ android {
         versionName "1.0"
         ndk {
             abiFilters 'arm64-v8a', 'x86_64', 'armeabi-v7a'
-        }
-        externalNativeBuild {
-            cmake {
-                abiFilters 'arm64-v8a', 'x86_64', 'armeabi-v7a'
-            }
         }
     }
     signingConfigs {
