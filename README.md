@@ -57,6 +57,8 @@ A future release may expose the API publicly, to make interaction with the front
   - [Custom validator](#custom-validator)
 - [Deployment options](#deployment-options)
   - [Using the Rust library](#using-the-rust-library)
+  - [Using the FFI library](#using-the-ffi-library)
+  - [Building for Android](#building-for-android)
   - [Using the CLI](#using-the-cli)
   - [Local native deployment](#local-native-deployment)
   - [Local deployment with Docker](#local-deployment-with-docker)
@@ -75,6 +77,7 @@ A future release may expose the API publicly, to make interaction with the front
 The tool can be used as:
 
 * A rust library, that can be used in client rust code.
+* A C-compatible FFI library (`sbs-ffi`), for embedding in mobile apps and other non-Rust environments.
 * A CLI (command-line interface) tool that can be installed on a local machine and executed in the terminal.
 * A locally deployed backend and frontend GUI.
 * A locally deployed Docker compose cluster.
@@ -110,6 +113,75 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("{} words", solutions.len());
     Ok(())
 }
+```
+
+### Using the FFI library
+
+The `sbs-ffi` crate provides a C-compatible dynamic library (`cdylib`) for embedding the solver in non-Rust environments such as Android (via JNI), iOS, or any language with C FFI support.
+
+The library exposes five functions:
+
+| Function | Description |
+| --- | --- |
+| `sbs_load_dictionary(path) → *mut Dictionary` | Load a dictionary file; returns opaque pointer (or null on failure) |
+| `sbs_free_dictionary(ptr)` | Free a dictionary pointer (null-safe) |
+| `sbs_solve(dict, json) → *mut c_char` | Solve a puzzle; accepts JSON, returns JSON |
+| `sbs_free_string(s)` | Free a string returned by `sbs_solve` (null-safe) |
+| `sbs_version() → *const c_char` | Return the library version (static, do not free) |
+
+**Request format** (JSON):
+
+```json
+{"letters": "abcdefg", "present": "a"}
+```
+
+**Response format** (JSON):
+
+```json
+{"words": ["bead", "cafe", "face", ...]}
+```
+
+On error, the response contains an `"error"` key instead of `"words"`.
+
+Build the FFI library:
+
+```bash
+cd sbs-ffi && cargo build --release
+```
+
+The shared library will be at `sbs-ffi/target/release/libsbs_ffi.dylib` (macOS), `.so` (Linux), or `.dll` (Windows).
+
+**Security notes:**
+
+* JSON input is limited to 1 MiB to prevent excessive memory allocation.
+* All pointer arguments are null-checked before use.
+* The dictionary pointer is opaque — the caller must not inspect or modify its contents.
+* Callers must respect the ownership contract: free each pointer exactly once with the matching free function.
+
+### Building for Android
+
+Cross-compile `sbs-ffi` for Android targets (arm64, x86_64, armv7) using `cargo-ndk`.
+
+One-time setup:
+
+```bash
+make setup-android
+```
+
+This installs the required Rust targets and `cargo-ndk`. An Android NDK must be installed separately (e.g., via Android Studio).
+
+Build:
+
+```bash
+make build-android
+```
+
+This produces shared libraries in `sbs-mobile/android/app/src/main/jniLibs/` for each ABI, ready for use by an Android project via JNI.
+
+Clean:
+
+```bash
+make clean-android
 ```
 
 ### Using the CLI
@@ -423,6 +495,7 @@ This enables a pre-push hook that runs `make check` (format, lint, test) before 
 |-- charts/               # Helm charts
 |-- infra/                # GKE manifests (Ingress, SSL, certs)
 |-- sbs-backend/          # Rust backend & trie engine (Actix-web)
+|-- sbs-ffi/              # C-compatible FFI library (cdylib)
 |-- sbs-frontend/         # React frontend (Vite + TypeScript)
 |-- docker-compose.yml    # Full stack Docker compose
 |-- target/               # Local build artifacts
