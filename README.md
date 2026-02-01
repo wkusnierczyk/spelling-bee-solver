@@ -60,6 +60,7 @@ A future release may expose the API publicly, to make interaction with the front
   - [Using the FFI library](#using-the-ffi-library)
   - [Building for Android](#building-for-android)
   - [React Native mobile app](#react-native-mobile-app)
+    - [Installing on a device](#installing-on-a-device)
   - [Using the CLI](#using-the-cli)
   - [Local native deployment](#local-native-deployment)
   - [Local deployment with Docker](#local-deployment-with-docker)
@@ -251,6 +252,39 @@ make clean-android
 | `run-mobile` | Launch the app on a connected device or emulator |
 | `clean-mobile` | Remove Gradle build artifacts |
 | `clean-android` | Remove cross-compiled JNI libraries |
+
+#### Installing on a device
+
+**Google Play**
+
+The app will be available on Google Play (planned).
+
+**Sideloading (developer)**
+
+Build the debug APK and install it on a connected device.
+
+1. Enable Developer Options on the device: Settings → About Phone → tap "Build number" 7 times.
+2. Enable USB Debugging: Settings → Developer Options → USB Debugging.
+3. Connect the device via USB and accept the debugging prompt.
+4. Verify the connection:
+   ```bash
+   adb devices
+   ```
+5. Build and install:
+   ```bash
+   # Option A: build + install + start Metro bundler in one step
+   make run-mobile
+
+   # Option B: install a previously built APK directly
+   make check-mobile
+   adb install sbs-mobile/android/app/build/outputs/apk/debug/app-debug.apk
+   ```
+
+**Emulator**
+
+1. Open Android Studio → Device Manager → Create Virtual Device (API 24+).
+2. Launch the emulator.
+3. Run `make run-mobile`.
 
 #### App features
 
