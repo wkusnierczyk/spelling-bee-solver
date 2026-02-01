@@ -46,7 +46,8 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isValid = letters.length > 0 && present.length > 0;
+  const presentNotInLetters = present.length > 0 && letters.length > 0 && !letters.includes(present);
+  const isValid = letters.length > 0 && present.length > 0 && !presentNotInLetters;
 
   const handleSolve = async () => {
     setLoading(true);
@@ -78,6 +79,7 @@ function App() {
     try {
       const words = await solve(letters, present, repeatsNum);
       setResults(words);
+      setCandidateCount(words.length);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Solve failed';
       setError(message);
@@ -121,7 +123,15 @@ function App() {
         )}
       </Pressable>
 
+      {presentNotInLetters && (
+        <Text style={styles.warning}>Required letter not in available letters</Text>
+      )}
+
       {error && <Text style={styles.error}>{error}</Text>}
+
+      {!loading && !error && results.length === 0 && candidateCount !== null && (
+        <Text style={styles.noResults}>No words found</Text>
+      )}
 
       {results.length > 0 && <Text style={styles.header}>{header}</Text>}
     </View>
@@ -176,10 +186,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  warning: {
+    color: '#e67e00',
+    fontSize: 14,
+    marginBottom: 12,
+  },
   error: {
     color: '#dc3545',
     fontSize: 14,
     marginBottom: 12,
+  },
+  noResults: {
+    color: '#666',
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 16,
   },
   header: {
     fontSize: 16,
