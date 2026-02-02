@@ -14,6 +14,7 @@ import {
 import {formatPlaintext, formatJson, formatMarkdown} from './src/utils/formats';
 import {SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
 import LetterInput from './src/components/LetterInput';
+import MaxRepeats from './src/components/MaxRepeats';
 import LengthLimits from './src/components/LengthLimits';
 import ModeToggle from './src/components/ModeToggle';
 import ValidatorPicker, {ValidatorKind} from './src/components/ValidatorPicker';
@@ -48,6 +49,8 @@ function App() {
   const [lengthLimits, setLengthLimits] = useState(false);
   const [minLength, setMinLength] = useState('4');
   const [maxLength, setMaxLength] = useState('');
+  const [repeatsEnabled, setRepeatsEnabled] = useState(false);
+  const [validatorEnabled, setValidatorEnabled] = useState(false);
   const [online, setOnline] = useState(false);
   const [backendUrl, setBackendUrl] = useState('http://10.0.2.2:8080');
   const [validator, setValidator] = useState<ValidatorKind>('');
@@ -89,6 +92,11 @@ function App() {
     clearResults();
   };
 
+  const handleRepeatsToggle = (value: boolean) => {
+    setRepeatsEnabled(value);
+    clearResults();
+  };
+
   const handleMinLengthChange = (value: string) => {
     setMinLength(value);
     if (value && maxLength) {
@@ -127,7 +135,7 @@ function App() {
     setCandidateCount(null);
     setProgress('');
 
-    const repeatsNum = repeats ? parseInt(repeats, 10) : 0;
+    const repeatsNum = repeatsEnabled && repeats ? parseInt(repeats, 10) : 0;
     let words: string[] = [];
 
     if (online) {
@@ -139,7 +147,7 @@ function App() {
           letters,
           present,
           repeatsNum || null,
-          validator || undefined,
+          (validatorEnabled && validator) || undefined,
           apiKey || undefined,
           validatorUrl || undefined,
           minLen || undefined,
@@ -169,7 +177,7 @@ function App() {
 
     setCandidateCount(words.length);
 
-    if (validator && words.length > 0) {
+    if (validatorEnabled && validator && words.length > 0) {
       setProgress(`Validating: 0 / ${words.length}`);
       try {
         const result = await validateWords(
@@ -236,16 +244,23 @@ function App() {
       <LetterInput
         letters={letters}
         present={present}
-        repeats={repeats}
         onLettersChange={handleLettersChange}
         onPresentChange={handlePresentChange}
+      />
+
+      <MaxRepeats
+        enabled={repeatsEnabled}
+        repeats={repeats}
+        onToggle={handleRepeatsToggle}
         onRepeatsChange={handleRepeatsChange}
       />
 
       <ValidatorPicker
+        enabled={validatorEnabled}
         validator={validator}
         apiKey={apiKey}
         validatorUrl={validatorUrl}
+        onToggle={setValidatorEnabled}
         onValidatorChange={setValidator}
         onApiKeyChange={setApiKey}
         onValidatorUrlChange={setValidatorUrl}

@@ -4,19 +4,15 @@ import {StyleSheet, Text, TextInput, View} from 'react-native';
 interface LetterInputProps {
   letters: string;
   present: string;
-  repeats: string;
   onLettersChange: (value: string) => void;
   onPresentChange: (value: string) => void;
-  onRepeatsChange: (value: string) => void;
 }
 
 export default function LetterInput({
   letters,
   present,
-  repeats,
   onLettersChange,
   onPresentChange,
-  onRepeatsChange,
 }: LetterInputProps) {
   return (
     <View>
@@ -43,18 +39,6 @@ export default function LetterInput({
           onChangeText={onPresentChange}
           autoCapitalize="none"
           autoCorrect={false}
-        />
-      </View>
-
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Max Repeats (Optional)</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Unlimited"
-          placeholderTextColor="#999"
-          value={repeats}
-          onChangeText={onRepeatsChange}
-          keyboardType="number-pad"
         />
       </View>
     </View>

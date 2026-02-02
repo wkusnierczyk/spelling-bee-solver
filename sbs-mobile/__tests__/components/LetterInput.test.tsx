@@ -6,10 +6,8 @@ describe('LetterInput', () => {
   const defaultProps = {
     letters: '',
     present: '',
-    repeats: '',
     onLettersChange: jest.fn(),
     onPresentChange: jest.fn(),
-    onRepeatsChange: jest.fn(),
   };
 
   it('shows first available letter as placeholder when letters provided', async () => {
