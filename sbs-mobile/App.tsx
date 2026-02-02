@@ -65,15 +65,17 @@ function App() {
   const handleLettersChange = (value: string) => {
     const unique = [...new Set(value.split(''))].join('');
     setLetters(unique);
-    if (present && !unique.includes(present)) {
-      setPresent('');
+    const filtered = present.split('').filter(c => unique.includes(c)).join('');
+    if (filtered !== present) {
+      setPresent(filtered);
     }
     clearResults();
   };
 
   const handlePresentChange = (value: string) => {
-    if (value.length === 0 || letters.includes(value)) {
-      setPresent(value);
+    const unique = [...new Set(value.split(''))].join('');
+    if (unique.split('').every(c => letters.includes(c))) {
+      setPresent(unique);
       clearResults();
     }
   };

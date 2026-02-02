@@ -75,13 +75,15 @@ function App() {
   const handleLettersChange = (value: string) => {
     const unique = [...new Set(value.split(''))].join('');
     setLetters(unique);
-    if (present && !unique.includes(present)) setPresent('');
+    const filtered = present.split('').filter(c => unique.includes(c)).join('');
+    if (filtered !== present) setPresent(filtered);
     clearResults();
   };
 
   const handlePresentChange = (value: string) => {
-    if (value.length === 0 || letters.includes(value)) {
-      setPresent(value);
+    const unique = [...new Set(value.split(''))].join('');
+    if (unique.split('').every(c => letters.includes(c))) {
+      setPresent(unique);
       clearResults();
     }
   };
@@ -246,9 +248,9 @@ function App() {
       </div>
 
       <div className="input-group">
-        <label>Required Letter</label>
+        <label>Required Letters</label>
         <input
-          placeholder={letters.length > 0 ? `e.g. ${letters[0]}` : ''}
+          placeholder={letters.length > 1 ? `e.g. ${letters[0]} or ${letters.slice(0, 2)}` : ''}
           value={present}
           onChange={(e) => handlePresentChange(e.target.value)}
         />
