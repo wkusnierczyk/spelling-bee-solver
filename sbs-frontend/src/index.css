@@ -144,3 +144,44 @@ button:disabled {
   margin-top: 1rem;
   text-align: center;
 }
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.results-header h3 {
+  margin: 0;
+}
+.download-dropdown {
+  position: relative;
+}
+.download-button {
+  width: auto;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.875rem;
+}
+.download-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 4px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  z-index: 10;
+  min-width: 160px;
+}
+.download-menu button {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: none;
+  color: #333;
+  text-align: left;
+  border: none;
+  border-radius: 0;
+  font-size: 0.875rem;
+}
+.download-menu button:hover {
+  background-color: #f0f0f0;
+}

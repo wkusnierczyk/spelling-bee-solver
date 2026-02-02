@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
+import { formatPlaintext, formatJson, formatMarkdown } from './formats'
 
 interface SolveRequest {
   letters: string;
@@ -232,6 +233,35 @@ function App() {
     }
   };
 
+  const [downloadOpen, setDownloadOpen] = useState(false);
+  const downloadRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (downloadRef.current && !downloadRef.current.contains(e.target as Node)) {
+        setDownloadOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const handleDownload = (format: 'plain' | 'json' | 'markdown') => {
+    const formatters = { plain: formatPlaintext, json: formatJson, markdown: formatMarkdown };
+    const extensions = { plain: 'txt', json: 'json', markdown: 'md' };
+    const mimeTypes = { plain: 'text/plain', json: 'application/json', markdown: 'text/markdown' };
+
+    const content = formatters[format](results);
+    const blob = new Blob([content], { type: mimeTypes[format] });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sbs-results.${extensions[format]}`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setDownloadOpen(false);
+  };
+
   const isValid = letters.length > 0 && present.length > 0;
 
   return (
@@ -372,11 +402,30 @@ function App() {
 
       <div className="results">
         {results.length > 0 && (
-          <h3>
-            Found {results.length} words
-            {candidateCount !== null && ` (from ${candidateCount} candidates)`}
-            :
-          </h3>
+          <>
+            <div className="results-header">
+              <h3>
+                Found {results.length} words
+                {candidateCount !== null && ` (from ${candidateCount} candidates)`}
+                :
+              </h3>
+              <div className="download-dropdown" ref={downloadRef}>
+                <button
+                  className="download-button"
+                  onClick={() => setDownloadOpen(!downloadOpen)}
+                >
+                  Download ▾
+                </button>
+                {downloadOpen && (
+                  <div className="download-menu">
+                    <button onClick={() => handleDownload('plain')}>Plaintext (.txt)</button>
+                    <button onClick={() => handleDownload('json')}>JSON (.json)</button>
+                    <button onClick={() => handleDownload('markdown')}>Markdown (.md)</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
         )}
         {results.map((item) => {
           if (isWordEntry(item)) {
