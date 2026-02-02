@@ -40,11 +40,20 @@ export async function solveOnline(
   validator?: string,
   apiKey?: string,
   validatorUrl?: string,
+  minLength?: number,
+  maxLength?: number,
 ): Promise<{
   results: string[] | WordEntry[];
   candidateCount: number | null;
 }> {
   const payload: Record<string, unknown> = {letters, present, repeats};
+
+  if (minLength && minLength > 0) {
+    payload['minimal-word-length'] = minLength;
+  }
+  if (maxLength && maxLength > 0) {
+    payload['maximal-word-length'] = maxLength;
+  }
 
   if (validator) {
     payload.validator = validator;

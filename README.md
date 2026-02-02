@@ -12,7 +12,7 @@ The tool _generalizes_ beyond the original NYT puzzle though.
 | Available letters | Any number of letters                                      | Fixed at 7 letters         |
 | Required letters  | Any number of required letters, including _zero_ and _all_ | Fixed at 1 required letter |
 | Letter repetition | Configurable repetition limits                             | Unbounded repetition       |
-| Word length       | [WIP] Configurable lower and upper bounds                  | Lower bound of 4           |
+| Word length       | Configurable lower and upper bounds                        | Lower bound of 4           |
 
 ## Dictionary validation
 
@@ -573,6 +573,16 @@ sbs \
   --present a \
   --dictionary sbs-backend/data/dictionary.txt \
   --output /tmp/solutions.txt
+```
+
+With word length constraints:
+
+```bash
+sbs \
+  --letters abcdefg \
+  --present a \
+  --minimal-word-length 5 \
+  --maximal-word-length 8
 ```
 
 With dictionary validation (results include definitions and URLs):

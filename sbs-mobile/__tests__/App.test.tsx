@@ -150,7 +150,7 @@ describe('App', () => {
       await pressables[0].props.onPress();
     });
 
-    expect(mockSolver.solve).toHaveBeenCalledWith('abcdefg', 'a', 0);
+    expect(mockSolver.solve).toHaveBeenCalledWith('abcdefg', 'a', 0, 0, 0);
   });
 
   it('falls back to offline when online fails', async () => {
@@ -170,11 +170,14 @@ describe('App', () => {
       inputs[1].props.onChangeText('a');
     });
 
-    // Toggle online mode
-    const switches = tree!.root.findAllByType('Switch' as any);
+    // Toggle online mode (last switch — after length limits toggle)
+    const switches = tree!.root.findAll(
+      n => n.props && typeof n.props.onValueChange === 'function',
+    );
     if (switches.length > 0) {
+      const onlineSwitch = switches[switches.length - 1];
       await act(async () => {
-        switches[0].props.onValueChange(true);
+        onlineSwitch.props.onValueChange(true);
       });
     }
 

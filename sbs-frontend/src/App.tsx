@@ -8,6 +8,8 @@ interface SolveRequest {
   validator?: string;
   "api-key"?: string;
   "validator-url"?: string;
+  "minimal-word-length"?: number;
+  "maximal-word-length"?: number;
 }
 
 interface WordEntry {
@@ -31,12 +33,17 @@ function isWordEntry(item: ResultItem): item is WordEntry {
 function App() {
   const [letters, setLetters] = useState('')
   const [present, setPresent] = useState('')
-  const [repeats, setRepeats] = useState('')
-  const [validator, setValidator] = useState('')
+  const [repeatsEnabled, setRepeatsEnabled] = useState(false)
+  const [repeats, setRepeats] = useState('1')
+  const [validatorEnabled, setValidatorEnabled] = useState(false)
+  const [validator, setValidator] = useState('free-dictionary')
   const [validatorUrl, setValidatorUrl] = useState('')
   const [apiKey, setApiKey] = useState('')
   const [results, setResults] = useState<ResultItem[]>([])
   const [candidateCount, setCandidateCount] = useState<number | null>(null)
+  const [lengthLimits, setLengthLimits] = useState(false)
+  const [minLength, setMinLength] = useState('4')
+  const [maxLength, setMaxLength] = useState('')
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -58,6 +65,13 @@ function App() {
     }
   }, [validator]);
 
+  const sanitizePositiveInt = (value: string): string => {
+    const digits = value.replace(/[^0-9]/g, '');
+    if (!digits) return '';
+    const n = parseInt(digits, 10);
+    return n > 0 ? String(n) : '';
+  };
+
   const handleLettersChange = (value: string) => {
     const unique = [...new Set(value.split(''))].join('');
     setLetters(unique);
@@ -73,7 +87,33 @@ function App() {
   };
 
   const handleRepeatsChange = (value: string) => {
-    setRepeats(value);
+    setRepeats(sanitizePositiveInt(value));
+    clearResults();
+  };
+
+  const handleMinLengthChange = (value: string) => {
+    const sanitized = sanitizePositiveInt(value);
+    setMinLength(sanitized);
+    if (sanitized && maxLength) {
+      const min = parseInt(sanitized, 10);
+      const max = parseInt(maxLength, 10);
+      if (min > max) {
+        setMaxLength(sanitized);
+      }
+    }
+    clearResults();
+  };
+
+  const handleMaxLengthChange = (value: string) => {
+    const sanitized = sanitizePositiveInt(value);
+    setMaxLength(sanitized);
+    if (sanitized && minLength) {
+      const max = parseInt(sanitized, 10);
+      const min = parseInt(minLength, 10);
+      if (max < min) {
+        setMinLength(sanitized);
+      }
+    }
     clearResults();
   };
 
@@ -98,10 +138,19 @@ function App() {
     const payload: SolveRequest = {
       letters: letters,
       present: present,
-      repeats: repeats ? parseInt(repeats) : null
+      repeats: repeatsEnabled && repeats ? parseInt(repeats, 10) : null
     };
 
-    if (validator) {
+    if (lengthLimits) {
+      if (minLength) {
+        payload["minimal-word-length"] = parseInt(minLength);
+      }
+      if (maxLength) {
+        payload["maximal-word-length"] = parseInt(maxLength);
+      }
+    }
+
+    if (validatorEnabled) {
       payload.validator = validator;
       if (validator === 'custom' && validatorUrl) {
         payload["validator-url"] = validatorUrl;
@@ -112,7 +161,7 @@ function App() {
     }
 
     // Use SSE streaming endpoint when a validator is selected
-    if (validator) {
+    if (validatorEnabled) {
       try {
         const response = await fetch('/solve-stream', {
           method: 'POST',
@@ -205,28 +254,90 @@ function App() {
         />
       </div>
 
-      <div className="input-group">
-        <label>Max Repeats (Optional)</label>
-        <input
-          type="number"
-          placeholder="Unlimited"
-          value={repeats}
-          onChange={(e) => handleRepeatsChange(e.target.value)}
-        />
+      <div className="input-group toggle-row">
+        <label>Max Repeats</label>
+        <label className="toggle">
+          <input
+            type="checkbox"
+            checked={repeatsEnabled}
+            onChange={(e) => { setRepeatsEnabled(e.target.checked); clearResults(); }}
+          />
+          <span className="toggle-slider" />
+        </label>
       </div>
 
-      <div className="input-group">
-        <label>Dictionary Validator (Optional)</label>
-        <select value={validator} onChange={(e) => setValidator(e.target.value)}>
-          <option value="">None (seed dictionary only)</option>
-          <option value="free-dictionary">Free Dictionary</option>
-          <option value="merriam-webster">Merriam-Webster</option>
-          <option value="wordnik">Wordnik</option>
-          <option value="custom">Custom URL</option>
-        </select>
+      {repeatsEnabled && (
+        <div className="input-group">
+          <input
+            type="number"
+            min="1"
+            value={repeats}
+            onChange={(e) => handleRepeatsChange(e.target.value)}
+          />
+        </div>
+      )}
+
+      <div className="input-group toggle-row">
+        <label>Word Length Limits</label>
+        <label className="toggle">
+          <input
+            type="checkbox"
+            checked={lengthLimits}
+            onChange={(e) => { setLengthLimits(e.target.checked); clearResults(); }}
+          />
+          <span className="toggle-slider" />
+        </label>
       </div>
 
-      {validator === 'custom' && (
+      {lengthLimits && (
+        <>
+          <div className="input-group">
+            <label>Minimum Length</label>
+            <input
+              type="number"
+              min="1"
+              placeholder="4"
+              value={minLength}
+              onChange={(e) => handleMinLengthChange(e.target.value)}
+            />
+          </div>
+          <div className="input-group">
+            <label>Maximum Length</label>
+            <input
+              type="number"
+              min="1"
+              placeholder="Unlimited"
+              value={maxLength}
+              onChange={(e) => handleMaxLengthChange(e.target.value)}
+            />
+          </div>
+        </>
+      )}
+
+      <div className="input-group toggle-row">
+        <label>Dictionary Validator</label>
+        <label className="toggle">
+          <input
+            type="checkbox"
+            checked={validatorEnabled}
+            onChange={(e) => { setValidatorEnabled(e.target.checked); clearResults(); }}
+          />
+          <span className="toggle-slider" />
+        </label>
+      </div>
+
+      {validatorEnabled && (
+        <div className="input-group">
+          <select value={validator} onChange={(e) => setValidator(e.target.value)}>
+            <option value="free-dictionary">Free Dictionary</option>
+            <option value="merriam-webster">Merriam-Webster</option>
+            <option value="wordnik">Wordnik</option>
+            <option value="custom">Custom URL</option>
+          </select>
+        </div>
+      )}
+
+      {validatorEnabled && validator === 'custom' && (
         <div className="input-group">
           <label>Custom Validator URL</label>
           <input
@@ -237,7 +348,7 @@ function App() {
         </div>
       )}
 
-      {(validator === 'merriam-webster' || validator === 'wordnik') && (
+      {validatorEnabled && (validator === 'merriam-webster' || validator === 'wordnik') && (
         <div className="input-group">
           <label>API Key</label>
           <input

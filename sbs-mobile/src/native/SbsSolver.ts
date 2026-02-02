@@ -18,8 +18,10 @@ export async function solve(
   letters: string,
   present: string,
   repeats: number = 0,
+  minLength: number = 0,
+  maxLength: number = 0,
 ): Promise<string[]> {
-  const json: string = await SbsSolver.solve(letters, present, repeats);
+  const json: string = await SbsSolver.solve(letters, present, repeats, minLength, maxLength);
   const result: SolveResult = JSON.parse(json);
   return result.words;
 }
