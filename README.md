@@ -1,5 +1,14 @@
 # Spelling Bee Solver
 
+[![Native](https://github.com/wkusnierczyk/spelling-bee-solver/actions/workflows/backend.yml/badge.svg)](https://github.com/wkusnierczyk/spelling-bee-solver/actions/workflows/backend.yml)
+[![Mobile](https://github.com/wkusnierczyk/spelling-bee-solver/actions/workflows/mobile.yml/badge.svg)](https://github.com/wkusnierczyk/spelling-bee-solver/actions/workflows/mobile.yml)
+[![Docker](https://github.com/wkusnierczyk/spelling-bee-solver/actions/workflows/docker.yml/badge.svg)](https://github.com/wkusnierczyk/spelling-bee-solver/actions/workflows/docker.yml)
+[![Compose](https://github.com/wkusnierczyk/spelling-bee-solver/actions/workflows/compose.yml/badge.svg)](https://github.com/wkusnierczyk/spelling-bee-solver/actions/workflows/compose.yml)
+[![Minikube](https://github.com/wkusnierczyk/spelling-bee-solver/actions/workflows/minikube.yml/badge.svg)](https://github.com/wkusnierczyk/spelling-bee-solver/actions/workflows/minikube.yml)
+[![GCP](https://github.com/wkusnierczyk/spelling-bee-solver/actions/workflows/gcp.yml/badge.svg)](https://github.com/wkusnierczyk/spelling-bee-solver/actions/workflows/gcp.yml)
+[![Release](https://img.shields.io/github/v/release/wkusnierczyk/spelling-bee-solver)](https://github.com/wkusnierczyk/spelling-bee-solver/releases/latest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 [Spelling Bee](https://en.wikipedia.org/wiki/Spelling_bee) is a word game where players build a list of valid words from a fixed set of letters, typically with one required center letter and length constraints. Solutions are scored by length, with a bonus for pangrams that use every letter at least once. There are implementations available online, e.g., at [SpellBee.org](https://spellbee.org/) or at [New York Times](https://www.nytimes.com/puzzles/spelling-bee).
 
 This repository does not provide yet another implementation of the puzzle.
