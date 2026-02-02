@@ -168,7 +168,7 @@ On error, the response contains an `"error"` key instead of `"words"`.
 Build the FFI library:
 
 ```bash
-cd sbs-ffi && cargo build --release
+(cd sbs-ffi && cargo build --release)
 ```
 
 The shared library will be at `sbs-ffi/target/release/libsbs_ffi.dylib` (macOS), `.so` (Linux), or `.dll` (Windows).
@@ -341,9 +341,9 @@ The default debug APK requires a running Metro bundler to load the JavaScript bu
 ```bash
 mkdir -p sbs-mobile/android/app/src/main/assets
 
-cd sbs-mobile && npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
+(cd sbs-mobile && npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res)
 
-cd android && ./gradlew assembleDebug
+(cd sbs-mobile/android && ./gradlew assembleDebug)
 ```
 
 The APK at `sbs-mobile/android/app/build/outputs/apk/debug/app-debug.apk` now works without a development server. This is the recommended approach for wireless deployment and for sharing the APK with others.
@@ -398,7 +398,20 @@ Wireless ADB lets you deploy and debug without a USB cable. The device and your 
 
 1. Enable Developer Options (see above).
 2. Enable **Wireless debugging**: Settings → Developer Options → Wireless debugging → toggle on.
-3. Tap **Pair device with pairing code**. Note the IP address, port, and pairing code shown on the device.
+
+*Option A — Pair via Android Studio Device Manager (recommended):*
+
+3. In Android Studio, open **Device Manager** (or Tools → Device Manager).
+4. Click **Pair using Wi-Fi**. A QR code appears.
+5. On the device, tap **Pair device with QR code** (in the Wireless debugging screen) and scan the QR code.
+6. The device appears in Device Manager once paired. Verify:
+   ```bash
+   adb devices
+   ```
+
+*Option B — Pair via command line:*
+
+3. On the device, tap **Pair device with pairing code**. Note the IP address, port, and pairing code shown.
 4. Pair from your machine:
    ```bash
    adb pair <ip>:<pairing-port>
@@ -413,12 +426,14 @@ Wireless ADB lets you deploy and debug without a USB cable. The device and your 
    adb devices
    # should show <ip>:<port> device
    ```
-7. Build and install as usual:
-   ```bash
-   make run-mobile
-   # or
-   adb install sbs-mobile/android/app/build/outputs/apk/debug/app-debug.apk
-   ```
+
+*Install:*
+
+```bash
+make run-mobile
+# or
+adb install sbs-mobile/android/app/build/outputs/apk/debug/app-debug.apk
+```
 
 *Android 10 and below — TCP/IP mode (requires one-time USB connection):*
 
