@@ -21,10 +21,10 @@ jobs:
         run: make setup-dictionary
 
       - name: Start Compose Stack
-        run: make start-compose-stack
+        run: make start-compose
 
-      - name: Test Docker Compose Stack 
-        run: make test-compose-stack
+      - name: Test Docker Compose Stack
+        run: make test-compose
 
       - name: Dump Docker Logs
         if: failure()
@@ -34,4 +34,4 @@ jobs:
       - name: Cleanup
         if: always()
         run: |
-          make stop-compose-stack
+          make stop-compose

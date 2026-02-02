@@ -29,10 +29,10 @@ jobs:
       - name: Build & Deploy
         run: |
           eval $(minikube docker-env)
-          make minikube-deploy
+          make deploy-minikube
 
       - name: Run Integration Tests
-        run: make minikube-test
+        run: make test-minikube
 
       - name: Dump Pod Status
         if: failure()
