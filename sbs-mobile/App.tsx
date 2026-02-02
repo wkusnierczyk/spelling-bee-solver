@@ -268,6 +268,25 @@ function App() {
         onPresentChange={handlePresentChange}
       />
 
+      <Pressable
+        style={[styles.button, (!isValid || loading) && styles.buttonDisabled]}
+        onPress={handleSolve}
+        disabled={!isValid || loading}>
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>Solve</Text>
+        )}
+      </Pressable>
+
+      {progress !== '' && <Text style={styles.progress}>{progress}</Text>}
+
+      {error && <Text style={styles.error}>{error}</Text>}
+
+      {!loading && !error && results.length === 0 && candidateCount !== null && (
+        <Text style={styles.noResults}>No words found</Text>
+      )}
+
       <CaseSensitiveToggle
         enabled={caseSensitive}
         onToggle={handleCaseSensitiveToggle}
@@ -306,25 +325,6 @@ function App() {
         onToggle={setOnline}
         onUrlChange={setBackendUrl}
       />
-
-      <Pressable
-        style={[styles.button, (!isValid || loading) && styles.buttonDisabled]}
-        onPress={handleSolve}
-        disabled={!isValid || loading}>
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Solve</Text>
-        )}
-      </Pressable>
-
-      {progress !== '' && <Text style={styles.progress}>{progress}</Text>}
-
-      {error && <Text style={styles.error}>{error}</Text>}
-
-      {!loading && !error && results.length === 0 && candidateCount !== null && (
-        <Text style={styles.noResults}>No words found</Text>
-      )}
 
       {results.length > 0 && (
         <View style={styles.resultsHeaderRow}>
