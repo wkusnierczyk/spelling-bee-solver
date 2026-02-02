@@ -404,16 +404,25 @@ mod tests {
 
         let results = solver.solve(&dict).expect("Solver failed");
 
-        assert!(
-            !results.contains("awls"),
-            "awls does not start with w"
-        );
+        assert!(!results.contains("awls"), "awls does not start with w");
         assert!(!results.contains("laws"), "laws does not start with w");
         assert!(!results.contains("slaw"), "slaw does not start with w");
-        assert!(!results.contains("lure"), "lure does not contain l... wait it does, but no w start");
-        assert!(results.contains("wall"), "wall starts with w and contains l");
-        assert!(results.contains("walls"), "walls starts with w and contains l");
-        assert!(results.contains("walrus"), "walrus starts with w and contains l");
+        assert!(
+            !results.contains("lure"),
+            "lure does not contain l... wait it does, but no w start"
+        );
+        assert!(
+            results.contains("wall"),
+            "wall starts with w and contains l"
+        );
+        assert!(
+            results.contains("walls"),
+            "walls starts with w and contains l"
+        );
+        assert!(
+            results.contains("walrus"),
+            "walrus starts with w and contains l"
+        );
     }
 
     #[test]
