@@ -777,7 +777,7 @@ make deploy-minikube
 make test-minikube
 
 # Open the frontend service in your browser
-make url-minikube
+make open-minikube
 
 # Clean up the Helm release (cluster stays running)
 make clean-minikube

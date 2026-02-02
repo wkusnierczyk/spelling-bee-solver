@@ -69,12 +69,12 @@ endif
 	clean-mobile \
 	test-mobile \
 	clean-docker \
-	start-docker stop-docker test-docker url-docker \
-	docker-start docker-stop docker-test docker-clean docker-url \
-	start-compose stop-compose test-compose url-compose \
-	compose-start compose-stop compose-test compose-url \
-	start-minikube build-minikube deploy-minikube test-minikube url-minikube clean-minikube stop-minikube delete-minikube \
-	minikube-start minikube-build minikube-deploy minikube-test minikube-url minikube-clean minikube-stop minikube-delete \
+	start-docker stop-docker test-docker open-docker \
+	docker-start docker-stop docker-test docker-clean docker-open \
+	start-compose stop-compose test-compose open-compose \
+	compose-start compose-stop compose-test compose-open \
+	start-minikube build-minikube deploy-minikube test-minikube open-minikube clean-minikube stop-minikube delete-minikube \
+	minikube-start minikube-build minikube-deploy minikube-test minikube-open minikube-clean minikube-stop minikube-delete \
 	auth-gcp build-gcp push-gcp deploy-gcp-candidate test-gcp-candidate promote-gcp-candidate cleanup-gcp-candidate deploy-gcp \
 	gcp-auth gcp-build gcp-push gcp-deploy-candidate gcp-test-candidate gcp-promote-candidate gcp-cleanup-candidate gcp-deploy \
 	status-gcp logs-gcp-backend logs-gcp-frontend rollback-gcp destroy-gcp hibernate-gcp wake-gcp \
@@ -299,7 +299,7 @@ clean-docker: ## Remove all Docker containers (manual and Compose), images, and 
 	@docker builder prune -f
 	$(call info, "Docker clean complete.")
 
-url-docker: ## Open the Docker stack frontend URL in the default browser
+open-docker: ## Open the Docker stack frontend URL in the default browser
 	$(call info, "Opening Frontend at http://localhost:5173...")
 	open http://localhost:5173
 
@@ -308,7 +308,7 @@ docker-start: start-docker ## Alias for start-docker
 docker-test: test-docker ## Alias for test-docker
 docker-stop: stop-docker ## Alias for stop-docker
 docker-clean: clean-docker ## Alias for clean-docker
-docker-url: url-docker ## Alias for url-docker
+docker-open: open-docker ## Alias for open-docker
 
 
 # --- Docker Compose Orchestration ---
@@ -328,7 +328,7 @@ stop-compose:
 	$(call info, "Stopping Docker Compose stack...")
 	@docker compose down
 
-url-compose: ## Open the Docker Compose stack frontend URL in the default browser
+open-compose: ## Open the Docker Compose stack frontend URL in the default browser
 	$(call info, "Opening Frontend at http://localhost:5173...")
 	open http://localhost:5173
 
@@ -336,7 +336,7 @@ url-compose: ## Open the Docker Compose stack frontend URL in the default browse
 compose-start: start-compose ## Alias for start-compose
 compose-test: test-compose ## Alias for test-compose
 compose-stop: stop-compose ## Alias for stop-compose
-compose-url: url-compose ## Alias for url-compose
+compose-open: open-compose ## Alias for open-compose
 
 
 
@@ -451,7 +451,7 @@ test-minikube: ## Verify the Minikube deployment (Wait + Curl)
 		echo "" && \
 		echo "Full Stack Verified!"
 
-url-minikube: ## Open the frontend URL in the default browser
+open-minikube: ## Open the frontend URL in the default browser
 	$(call info, "Opening Frontend Service...")
 	minikube service $(SBS_FRONTEND_NAME) -n $(NAMESPACE)
 
@@ -472,7 +472,7 @@ minikube-start: start-minikube ## Alias for start-minikube
 minikube-build: build-minikube ## Alias for build-minikube
 minikube-deploy: deploy-minikube ## Alias for deploy-minikube
 minikube-test: test-minikube ## Alias for test-minikube
-minikube-url: url-minikube ## Alias for url-minikube
+minikube-open: open-minikube ## Alias for open-minikube
 minikube-clean: clean-minikube ## Alias for clean-minikube
 minikube-stop: stop-minikube ## Alias for stop-minikube
 minikube-delete: delete-minikube ## Alias for delete-minikube
