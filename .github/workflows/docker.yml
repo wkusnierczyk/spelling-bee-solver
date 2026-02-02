@@ -21,7 +21,7 @@ jobs:
         run: make setup-dictionary
 
       - name: Test Docker Stack
-        run: make test-docker-stack
+        run: make test-docker
 
       - name: Dump Docker Logs
         if: failure()

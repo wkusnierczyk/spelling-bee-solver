@@ -68,7 +68,17 @@ endif
 	run-mobile \
 	clean-mobile \
 	test-mobile \
-	clean-docker
+	clean-docker \
+	start-docker stop-docker test-docker url-docker \
+	docker-start docker-stop docker-test docker-clean docker-url \
+	start-compose stop-compose test-compose url-compose \
+	compose-start compose-stop compose-test compose-url \
+	start-minikube build-minikube deploy-minikube test-minikube url-minikube clean-minikube stop-minikube delete-minikube \
+	minikube-start minikube-build minikube-deploy minikube-test minikube-url minikube-clean minikube-stop minikube-delete \
+	auth-gcp build-gcp push-gcp deploy-gcp-candidate test-gcp-candidate promote-gcp-candidate cleanup-gcp-candidate deploy-gcp \
+	gcp-auth gcp-build gcp-push gcp-deploy-candidate gcp-test-candidate gcp-promote-candidate gcp-cleanup-candidate gcp-deploy \
+	status-gcp logs-gcp-backend logs-gcp-frontend rollback-gcp destroy-gcp hibernate-gcp wake-gcp \
+	gcp-status gcp-logs-backend gcp-logs-frontend gcp-rollback gcp-destroy gcp-hibernate gcp-wake
 
 help: ## Show help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -216,7 +226,7 @@ start-backend-container: remove-backend-container
 		$(SBS_BACKEND_NAME):$(DOCKER_TAG)
 	$(call info, "Backend container started on http://localhost:8080")
 
-test-backend-container: 
+test-backend-container:
 	$(call info, "Testing backend container...")
 	curl -v http://localhost:8080/health
 	curl -X POST http://localhost:8080/solve \
@@ -268,17 +278,17 @@ remove-frontend-container: stop-frontend-container ## Stop and then remove the f
 
 # --- Docker Orchestration ---
 
-start-docker-stack: setup-dictionary build-backend-image build-frontend-image start-backend-container start-frontend-container
+start-docker: setup-dictionary build-backend-image build-frontend-image start-backend-container start-frontend-container
 	@sleep 2
 	@# @make test-frontend-container
 	$(call info, "Stack running!")
 
-test-docker-stack: setup-dictionary build-backend-image build-frontend-image start-backend-container start-frontend-container
+test-docker: setup-dictionary build-backend-image build-frontend-image start-backend-container start-frontend-container
 	$(call info, "Verifying Full Docker Stack...")
 	@make fullstack-smoke-test
 	$(call info, "Full Docker Stack is verified and running!")
 
-stop-docker-stack: stop-frontend-container stop-backend-container
+stop-docker: stop-frontend-container stop-backend-container
 	$(call info, "Stack stopped.")
 
 clean-docker: ## Remove all Docker containers (manual and Compose), images, and build cache
@@ -289,31 +299,44 @@ clean-docker: ## Remove all Docker containers (manual and Compose), images, and 
 	@docker builder prune -f
 	$(call info, "Docker clean complete.")
 
-docker-url: ## Open the Docker stack frontend URL in the default browser
+url-docker: ## Open the Docker stack frontend URL in the default browser
 	$(call info, "Opening Frontend at http://localhost:5173...")
 	open http://localhost:5173
+
+# Aliases
+docker-start: start-docker ## Alias for start-docker
+docker-test: test-docker ## Alias for test-docker
+docker-stop: stop-docker ## Alias for stop-docker
+docker-clean: clean-docker ## Alias for clean-docker
+docker-url: url-docker ## Alias for url-docker
 
 
 # --- Docker Compose Orchestration ---
 
-start-compose-stack: setup-dictionary 
+start-compose: setup-dictionary
 	$(call info, "Starting stack with Docker Compose...")
 	@docker compose up -d --build
 	$(call info, "Stack is running.")
 	$(call info, "Frontend: http://localhost:5173")
 	$(call info, "Backend:  http://localhost:8080")
 
-test-compose-stack: 
+test-compose:
 	$(call info, "Verifying Docker Compose stack...")
 	@make fullstack-smoke-test
 
-stop-compose-stack:
+stop-compose:
 	$(call info, "Stopping Docker Compose stack...")
 	@docker compose down
 
-compose-url: ## Open the Docker Compose stack frontend URL in the default browser
+url-compose: ## Open the Docker Compose stack frontend URL in the default browser
 	$(call info, "Opening Frontend at http://localhost:5173...")
 	open http://localhost:5173
+
+# Aliases
+compose-start: start-compose ## Alias for start-compose
+compose-test: test-compose ## Alias for test-compose
+compose-stop: stop-compose ## Alias for stop-compose
+compose-url: url-compose ## Alias for url-compose
 
 
 
@@ -350,7 +373,7 @@ ci-backend: ## Run the backend CI workflow locally using a complete runner image
 		--platform ubuntu-latest=catthehacker/ubuntu:act-latest \
 		--bind \
 		--reuse
-		
+
 ci-docker: ## Run Docker workflow locally
 	$(call info, "Running Docker Workflow locally...")
 	act -W .github/workflows/docker.yml --container-architecture linux/amd64
@@ -381,18 +404,18 @@ ci-all: ## Run all workflows locally
 
 # --- Minikube Targets ---
 
-minikube-start:
+start-minikube:
 	$(call info, "Starting Minikube...")
 	minikube start --driver=docker
 
-minikube-build: setup-dictionary
+build-minikube: setup-dictionary
 	$(call info, "Pointing Docker to Minikube...")
 	@eval $$(minikube docker-env) && \
 		docker build -t $(SBS_BACKEND_NAME):$(DOCKER_TAG) -f $(SBS_BACKEND_DIR)/Dockerfile $(SBS_BACKEND_DIR) && \
 		docker build -t $(SBS_FRONTEND_NAME):$(DOCKER_TAG) -f $(SBS_FRONTEND_DIR)/Dockerfile $(SBS_FRONTEND_DIR)
 	$(call info, "Images built inside Minikube registry.")
 
-minikube-deploy: minikube-build ## Deploy charts to Minikube
+deploy-minikube: build-minikube ## Deploy charts to Minikube
 	$(call info, "Deploying Helm Release $(RELEASE_NAME)...")
 	helm upgrade --install $(RELEASE_NAME) ./charts/minikube \
 		--namespace $(NAMESPACE) \
@@ -407,11 +430,11 @@ minikube-deploy: minikube-build ## Deploy charts to Minikube
 		--set frontend.image.pullPolicy=Never
 
 MINIKUBE_TEST_TIMEOUT = 120s
-minikube-test: ## Verify the Minikube deployment (Wait + Curl)
+test-minikube: ## Verify the Minikube deployment (Wait + Curl)
 	$(call info, "Waiting for Pods to be ready...")
 	@kubectl wait --namespace $(NAMESPACE) --for=condition=ready pod --selector=app=$(SBS_BACKEND_NAME) --timeout=$(MINIKUBE_TEST_TIMEOUT)
 	@kubectl wait --namespace $(NAMESPACE) --for=condition=ready pod --selector=app=$(SBS_FRONTEND_NAME) --timeout=$(MINIKUBE_TEST_TIMEOUT)
-	
+
 	$(call info, "1. Testing Frontend Static Content (Port-Forward)...")
 	@kubectl port-forward service/$(SBS_FRONTEND_NAME) -n $(NAMESPACE) 9090:80 > /dev/null 2>&1 & \
 	PID=$$!; \
@@ -428,21 +451,31 @@ minikube-test: ## Verify the Minikube deployment (Wait + Curl)
 		echo "" && \
 		echo "Full Stack Verified!"
 
-minikube-url: ## Open the frontend URL in the default browser
+url-minikube: ## Open the frontend URL in the default browser
 	$(call info, "Opening Frontend Service...")
 	minikube service $(SBS_FRONTEND_NAME) -n $(NAMESPACE)
 
-minikube-clean: ## Remove the Helm release (leaves cluster running)
+clean-minikube: ## Remove the Helm release (leaves cluster running)
 	$(call info, "Uninstalling Release $(RELEASE_NAME)...")
 	helm uninstall $(RELEASE_NAME) -n $(NAMESPACE) || true
 
-minikube-stop: ## Stop the Minikube cluster (saves resources)
+stop-minikube: ## Stop the Minikube cluster (saves resources)
 	$(call info, "Stopping Minikube...")
 	minikube stop
 
-minikube-delete: ## Nuke the Minikube cluster (fresh start)
+delete-minikube: ## Nuke the Minikube cluster (fresh start)
 	$(call info, "Deleting Minikube Cluster...")
 	minikube delete
+
+# Aliases (reverse compatibility)
+minikube-start: start-minikube ## Alias for start-minikube
+minikube-build: build-minikube ## Alias for build-minikube
+minikube-deploy: deploy-minikube ## Alias for deploy-minikube
+minikube-test: test-minikube ## Alias for test-minikube
+minikube-url: url-minikube ## Alias for url-minikube
+minikube-clean: clean-minikube ## Alias for clean-minikube
+minikube-stop: stop-minikube ## Alias for stop-minikube
+minikube-delete: delete-minikube ## Alias for delete-minikube
 
 
 # --- Cloud / GCP Orchestration ---
@@ -454,20 +487,20 @@ STAGING_NAMESPACE = sbs-staging
 RELEASE_NAME = sbs-prod
 STAGING_RELEASE_NAME = sbs-staging
 
-gcp-auth: ## Authenticate kubectl with the GKE cluster
+auth-gcp: ## Authenticate kubectl with the GKE cluster
 	gcloud container clusters get-credentials $(GCP_CLUSTER_NAME) --zone $(GCP_ZONE) --project $(GCP_PROJECT_ID)
 
-gcp-build: ## Build images for Cloud (Force AMD64 for GKE compatibility)
+build-gcp: ## Build images for Cloud (Force AMD64 for GKE compatibility)
 	$(call info, "Building Cloud Images (linux/amd64) with tag $(CLOUD_TAG)...")
 	docker build --platform linux/amd64 -t $(GCP_REGISTRY)/$(SBS_BACKEND_NAME):$(CLOUD_TAG) -f $(SBS_BACKEND_DIR)/Dockerfile $(SBS_BACKEND_DIR)
 	docker build --platform linux/amd64 -t $(GCP_REGISTRY)/$(SBS_FRONTEND_NAME):$(CLOUD_TAG) -f $(SBS_FRONTEND_DIR)/Dockerfile $(SBS_FRONTEND_DIR)
 
-gcp-push: gcp-build ## Push images to Google Container Registry
+push-gcp: build-gcp ## Push images to Google Container Registry
 	$(call info, "Pushing images to GCR...")
 	docker push $(GCP_REGISTRY)/$(SBS_BACKEND_NAME):$(CLOUD_TAG)
 	docker push $(GCP_REGISTRY)/$(SBS_FRONTEND_NAME):$(CLOUD_TAG)
 
-gcp-deploy-candidate: gcp-push ## Deploy to staging namespace for testing
+deploy-gcp-candidate: push-gcp ## Deploy to staging namespace for testing
 	$(call info, "Deploying candidate to staging namespace...")
 	helm upgrade --install $(STAGING_RELEASE_NAME) ./charts/gcp \
 		--namespace $(STAGING_NAMESPACE) \
@@ -480,7 +513,7 @@ gcp-deploy-candidate: gcp-push ## Deploy to staging namespace for testing
 		--wait --timeout=5m
 	$(call info, "Candidate deployed to staging namespace")
 
-gcp-test-candidate: ## Test the candidate deployment in staging
+test-gcp-candidate: ## Test the candidate deployment in staging
 	$(call info, "Waiting for staging LoadBalancer IP...")
 	@IP=""; \
 	count=0; \
@@ -519,7 +552,7 @@ gcp-test-candidate: ## Test the candidate deployment in staging
 	echo ""; \
 	echo "✅ All candidate tests passed!"
 
-gcp-promote-candidate: ## Promote candidate to production (rolling update)
+promote-gcp-candidate: ## Promote candidate to production (rolling update)
 	$(call info, "Promoting candidate to production...")
 	helm upgrade --install $(RELEASE_NAME) ./charts/gcp \
 		--namespace $(NAMESPACE) \
@@ -533,16 +566,16 @@ gcp-promote-candidate: ## Promote candidate to production (rolling update)
 	$(call info, "Production updated with rolling deployment")
 	@kubectl get ingress -n $(NAMESPACE)
 
-gcp-cleanup-candidate: ## Remove the staging deployment
+cleanup-gcp-candidate: ## Remove the staging deployment
 	$(call info, "Cleaning up staging namespace...")
 	helm uninstall $(STAGING_RELEASE_NAME) -n $(STAGING_NAMESPACE) 2>/dev/null || true
 	kubectl delete namespace $(STAGING_NAMESPACE) --ignore-not-found=true --wait=true
 	$(call info, "Staging cleaned up")
 
-gcp-deploy: gcp-auth gcp-deploy-candidate gcp-test-candidate gcp-promote-candidate gcp-cleanup-candidate ## Full deployment pipeline
+deploy-gcp: auth-gcp deploy-gcp-candidate test-gcp-candidate promote-gcp-candidate cleanup-gcp-candidate ## Full deployment pipeline
 	$(call info, "🚀 Deployment complete!")
 
-gcp-status: ## Show current deployment status
+status-gcp: ## Show current deployment status
 	$(call info, "Production namespace ($(NAMESPACE)):")
 	@kubectl get pods,svc,ingress -n $(NAMESPACE) 2>/dev/null || echo "   No resources found"
 	@echo ""
@@ -552,18 +585,18 @@ gcp-status: ## Show current deployment status
 	$(call info, "Managed Certificate:")
 	@kubectl get managedcertificate -n $(NAMESPACE) 2>/dev/null || echo "   No certificate found"
 
-gcp-logs-backend: ## Tail backend logs from production
+logs-gcp-backend: ## Tail backend logs from production
 	kubectl logs -f -n $(NAMESPACE) -l app=sbs-backend --all-containers
 
-gcp-logs-frontend: ## Tail frontend logs from production
+logs-gcp-frontend: ## Tail frontend logs from production
 	kubectl logs -f -n $(NAMESPACE) -l app=sbs-frontend --all-containers
 
-gcp-rollback: ## Rollback to previous production release
+rollback-gcp: ## Rollback to previous production release
 	$(call info, "Rolling back production deployment...")
 	helm rollback $(RELEASE_NAME) -n $(NAMESPACE)
 	$(call info, "Rollback complete")
 
-gcp-destroy: ## Remove all GCP deployments (DANGEROUS)
+destroy-gcp: ## Remove all GCP deployments (DANGEROUS)
 	$(call info, "Destroying all deployments...")
 	helm uninstall $(RELEASE_NAME) -n $(NAMESPACE) 2>/dev/null || true
 	helm uninstall $(STAGING_RELEASE_NAME) -n $(STAGING_NAMESPACE) 2>/dev/null || true
@@ -573,19 +606,36 @@ gcp-destroy: ## Remove all GCP deployments (DANGEROUS)
 
 # --- Cloud Cost Management ---
 
-gcp-hibernate: ## Scale deployments to zero (stops compute costs, keeps LB)
+hibernate-gcp: ## Scale deployments to zero (stops compute costs, keeps LB)
 	$(call info, "Scaling deployments to zero...")
 	kubectl scale deployment sbs-backend --replicas=0 -n $(NAMESPACE)
 	kubectl scale deployment sbs-frontend --replicas=0 -n $(NAMESPACE)
-	$(call info, "Cluster hibernated. Run 'make gcp-wake' to restore.")
+	$(call info, "Cluster hibernated. Run 'make wake-gcp' to restore.")
 
-gcp-wake: ## Restore deployments from hibernation
+wake-gcp: ## Restore deployments from hibernation
 	$(call info, "Waking up deployments...")
 	kubectl scale deployment sbs-backend --replicas=1 -n $(NAMESPACE)
 	kubectl scale deployment sbs-frontend --replicas=1 -n $(NAMESPACE)
 	kubectl rollout status deployment/sbs-backend -n $(NAMESPACE) --timeout=120s
 	kubectl rollout status deployment/sbs-frontend -n $(NAMESPACE) --timeout=120s
 	$(call info, "Cluster is awake and ready.")
+
+# Aliases (reverse compatibility)
+gcp-auth: auth-gcp ## Alias for auth-gcp
+gcp-build: build-gcp ## Alias for build-gcp
+gcp-push: push-gcp ## Alias for push-gcp
+gcp-deploy-candidate: deploy-gcp-candidate ## Alias for deploy-gcp-candidate
+gcp-test-candidate: test-gcp-candidate ## Alias for test-gcp-candidate
+gcp-promote-candidate: promote-gcp-candidate ## Alias for promote-gcp-candidate
+gcp-cleanup-candidate: cleanup-gcp-candidate ## Alias for cleanup-gcp-candidate
+gcp-deploy: deploy-gcp ## Alias for deploy-gcp
+gcp-status: status-gcp ## Alias for status-gcp
+gcp-logs-backend: logs-gcp-backend ## Alias for logs-gcp-backend
+gcp-logs-frontend: logs-gcp-frontend ## Alias for logs-gcp-frontend
+gcp-rollback: rollback-gcp ## Alias for rollback-gcp
+gcp-destroy: destroy-gcp ## Alias for destroy-gcp
+gcp-hibernate: hibernate-gcp ## Alias for hibernate-gcp
+gcp-wake: wake-gcp ## Alias for wake-gcp
 
 
 # --- Architecture Diagram Generation ---

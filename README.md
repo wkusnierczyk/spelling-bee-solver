@@ -731,13 +731,13 @@ Build and use containerised components in one go.
 
 ```bash
 # Build and start all containers
-make start-docker-stack
+make start-docker
 
 # Test the stack
-make test-docker-stack
+make test-docker
 
 # Stop all containers
-make stop-docker-stack
+make stop-docker
 
 # Remove all Docker containers (manual and Compose), images, and build cache
 make clean-docker
@@ -751,10 +751,10 @@ Deploy the service with Docker Compose using the followng make targets.
 
 ```bash
 # Start the whole stack
-make docker-compose-up
+make start-compose
 
 # Stop the whole stack
-make docker-compose-down
+make stop-compose
 
 # Remove all Docker containers (manual and Compose), images, and build cache
 make clean-docker
@@ -768,23 +768,23 @@ Deploy the stack to a local Minikube cluster using the followng make targets.
 
 ```bash
 # Start a local cluster (Docker driver)
-make minikube-start
+make start-minikube
 
 # Build images inside Minikube registry and deploy via Helm
-make minikube-deploy
+make deploy-minikube
 
 # Verify pods and service connectivity
-make minikube-test
+make test-minikube
 
 # Open the frontend service in your browser
-make minikube-url
+make url-minikube
 
 # Clean up the Helm release (cluster stays running)
-make minikube-clean
+make clean-minikube
 
 # Stop or delete the Minikube cluster
-make minikube-stop
-make minikube-delete
+make stop-minikube
+make delete-minikube
 ```
 
 ### Cloud deployment (GCP)
@@ -799,43 +799,43 @@ Check your GCP project for details.
 
 ```bash
 # Authenticate kubectl with the GKE cluster
-make gcp-auth
+make auth-gcp
 
 # Build images for Cloud (Force AMD64 for GKE compatibility)
-make gcp-build
+make build-gcp
 
 # Push images to Google Container Registry
-make gcp-push
+make push-gcp
 
 # Deploy to staging namespace for testing
-make gcp-deploy-candidate
+make deploy-gcp-candidate
 
 # Test the candidate deployment in staging
-make gcp-test-candidate
+make test-gcp-candidate
 
 # Promote candidate to production (rolling update)
-make gcp-promote-candidate
+make promote-gcp-candidate
 
 # Remove the staging deployment
-make gcp-cleanup-candidate
+make cleanup-gcp-candidate
 
 # Full deployment pipeline
-make gcp-deploy
+make deploy-gcp
 
 # Show current deployment status
-make gcp-status
+make status-gcp
 
 # Tail backend logs from production
-make gcp-logs-backend
+make logs-gcp-backend
 
 # Tail frontend logs from production
-make gcp-logs-frontend
+make logs-gcp-frontend
 
 # Rollback to previous production release
-make gcp-rollback
+make rollback-gcp
 
 # Remove all GCP deployments (DANGEROUS)
-make gcp-destroy
+make destroy-gcp
 ```
 
 #### Cloud cost management
@@ -848,10 +848,10 @@ The Load Balancer remains active (~$18/mo), but CPU/RAM incur no costs.
 
 ```bash
 # Scale down
-make gcp-hibernate
+make hibernate-gcp
 
 # Scale back up
-make gcp-wake
+make wake-gcp
 ```
 
 **Option B: Full teardown**  
@@ -860,16 +860,16 @@ Use for long-term breaks. Removes deployments, ingress, and load balancer.
 
 ```bash
 # Remove everything
-make gcp-destroy
+make destroy-gcp
 
 # Redeploy later
-make gcp-deploy
+make deploy-gcp
 ```
 
 **Check current state**
 
 ```bash
-make gcp-status
+make status-gcp
 ```
 
 
@@ -961,7 +961,7 @@ make test-mobile
 sbs --about
 
 sbs: Spelling Bee Solver tool
-├─ version:   0.5.1
+├─ version:   0.5.2
 ├─ developer: mailto:waclaw.kusnierczyk@gmail.com
 ├─ source:    https://github.com/wkusnierczyk/spelling-bee-solver
 ├─ licence:   MIT https://opensource.org/licenses/MIT

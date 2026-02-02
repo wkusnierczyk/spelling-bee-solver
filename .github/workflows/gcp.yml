@@ -47,7 +47,7 @@ jobs:
         run: gcloud auth configure-docker --quiet
 
       - name: Deploy (Build → Push → Stage → Test → Promote)
-        run: make gcp-deploy
+        run: make deploy-gcp
 
       - name: Verify Production
         run: |
@@ -84,7 +84,7 @@ jobs:
         if: failure()
         run: |
           echo "Deployment failed. Cleaning up staging..."
-          make gcp-cleanup-candidate || true
+          make cleanup-gcp-candidate || true
           
           echo "=== Staging Pod Status ==="
           kubectl get pods -n sbs-staging || true
