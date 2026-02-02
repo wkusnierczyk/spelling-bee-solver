@@ -1,6 +1,6 @@
 graph TD
     User((User / Developer))
-    
+
     subgraph "Host Machine"
         Browser[Browser]
         Terminal[Terminal / Minikube Tunnel]
@@ -8,20 +8,23 @@ graph TD
 
     subgraph "Minikube VM / Container"
         IngressCtrl[("Nginx Ingress Controller<br/>(Emulates LoadBalancer)")]
-        
+
         subgraph "Namespace: sbs-namespace"
             SvcFront["Service: sbs-frontend"]
             PodFront["Pod: Frontend"]
-            
+
             SvcBack["Service: sbs-backend"]
             PodBack["Pod: Backend"]
         end
     end
+
+    ExternalAPIs["External Dictionary APIs"]
 
     User -->|http://localhost| Browser
     Browser -->|Routes to| Terminal
     Terminal -->|Tunnel / Bridge| IngressCtrl
     IngressCtrl -->|Routing Rule| SvcFront
     SvcFront --> PodFront
-    PodFront -->|Proxy /solve| SvcBack
+    PodFront -->|"Proxy /solve, /solve-stream (SSE)"| SvcBack
     SvcBack --> PodBack
+    PodBack -->|Validate words| ExternalAPIs
