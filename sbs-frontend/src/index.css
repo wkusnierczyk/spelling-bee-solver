@@ -83,6 +83,12 @@ button:disabled {
   color: #666;
   font-size: 0.9rem;
 }
+.progress {
+  color: #007bff;
+  font-size: 0.875rem;
+  text-align: center;
+  margin-top: 0.75rem;
+}
 .error {
   color: #dc3545;
   margin-top: 1rem;

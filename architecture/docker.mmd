@@ -1,21 +1,23 @@
 graph TD
     User((User))
-    
+
     subgraph "Host Machine"
         Browser[Browser]
-        
+
         subgraph "Docker Engine"
             subgraph "Container A"
                 Nginx["Nginx (Frontend)"]
             end
-            
+
             subgraph "Container B"
                 Rust["Rust App (Backend)"]
             end
         end
     end
 
-    User -->|http://localhost:80| Browser
-    Browser -->|Mapped Port 80:80| Nginx
-    Nginx -.->|Proxy to Host IP:8080| Rust
-    Rust -.->|Port 8080:8080| Browser
+    ExternalAPIs["External Dictionary APIs"]
+
+    User -->|http://localhost:5173| Browser
+    Browser -->|"Mapped Port 5173:80"| Nginx
+    Nginx -.->|"Proxy /solve, /solve-stream (SSE)"| Rust
+    Rust -->|Validate words| ExternalAPIs

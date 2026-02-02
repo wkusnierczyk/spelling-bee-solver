@@ -109,6 +109,8 @@ version-set: ## Set version across all files: make version-set V=x.y.z
 	@sed -i '' 's/^version = ".*"/version = "$(V)"/' sbs-backend/Cargo.toml
 	@sed -i '' 's/^version = ".*"/version = "$(V)"/' sbs-ffi/Cargo.toml
 	@sed -i '' 's/"version": ".*"/"version": "$(V)"/' sbs-frontend/package.json
+	@sed -i '' 's/"version": ".*"/"version": "$(V)"/' sbs-mobile/package.json
+	@sed -i '' 's/versionName ".*"/versionName "$(V)"/' sbs-mobile/android/app/build.gradle
 	@sed -i '' 's/^appVersion: ".*"/appVersion: "$(V)"/' charts/minikube/Chart.yaml
 	@sed -i '' 's/^appVersion: ".*"/appVersion: "$(V)"/' charts/gcp/Chart.yaml
 	@sed -i '' 's/├─ version:   .*/├─ version:   $(V)/' README.md
@@ -281,6 +283,10 @@ stop-docker-stack: stop-frontend-container stop-backend-container
 remove-docker-stack: remove-frontend-container remove-backend-container
 	$(call info, "Stack removed.")
 
+docker-url: ## Open the Docker stack frontend URL in the default browser
+	$(call info, "Opening Frontend at http://localhost:5173...")
+	open http://localhost:5173
+
 
 # --- Docker Compose Orchestration ---
 
@@ -298,6 +304,10 @@ test-compose-stack:
 stop-compose-stack:
 	$(call info, "Stopping Docker Compose stack...")
 	@docker compose down
+
+compose-url: ## Open the Docker Compose stack frontend URL in the default browser
+	$(call info, "Opening Frontend at http://localhost:5173...")
+	open http://localhost:5173
 
 clean-compose-stack: ## Remove containers, images, and build cache for a fresh rebuild
 	$(call info, "Stopping and removing containers...")

@@ -79,6 +79,15 @@ pub trait Validator: Send + Sync {
 
     /// Validate a list of words with throttling. Returns a summary with counts.
     fn validate_words(&self, words: &[String]) -> ValidationSummary {
+        self.validate_words_with_progress(words, &|_, _| {})
+    }
+
+    /// Validate a list of words with throttling and progress callback.
+    fn validate_words_with_progress(
+        &self,
+        words: &[String],
+        on_progress: &dyn Fn(usize, usize),
+    ) -> ValidationSummary {
         let candidates = words.len();
         let mut entries = Vec::new();
         for (i, word) in words.iter().enumerate() {
@@ -92,6 +101,7 @@ pub trait Validator: Send + Sync {
                     log::warn!("Validation error for '{}': {}", word, e);
                 }
             }
+            on_progress(i + 1, candidates);
         }
         let validated = entries.len();
         ValidationSummary {

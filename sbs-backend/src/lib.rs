@@ -14,5 +14,5 @@ pub use solver::Solver;
 #[cfg(feature = "validator")]
 pub use validator::{
     create_validator, CustomValidator, FreeDictionaryValidator, MerriamWebsterValidator,
-    ValidationSummary, ValidatorKind, WordEntry, WordnikValidator,
+    ValidationSummary, Validator, ValidatorKind, WordEntry, WordnikValidator,
 };

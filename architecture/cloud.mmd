@@ -1,30 +1,32 @@
 graph TD
     User((User / Browser))
-    
+
     subgraph "Google Cloud Platform"
         DNS["DNS: sbsolver.ch"]
         StaticIP["Static IP: 35.244.163.14"]
         Cert["Managed Certificate<br/>(Auto TLS)"]
-        
+
         subgraph "Global Load Balancer"
             Ingress[("GKE Ingress<br/>(HTTPS Termination)")]
             Redirect["HTTP → HTTPS Redirect"]
         end
     end
-    
+
     subgraph "GKE Cluster: sbs-cluster"
         subgraph "Namespace: sbs-namespace"
             subgraph "Frontend Layer"
                 SvcFront["Service: sbs-frontend<br/>(NodePort)"]
                 PodFront["Pod: Nginx + React"]
             end
-            
+
             subgraph "Backend Layer"
                 SvcBack["Service: sbs-backend<br/>(ClusterIP)"]
                 PodBack["Pod: Rust API"]
             end
         end
     end
+
+    ExternalAPIs["External Dictionary APIs"]
 
     User -->|HTTPS| DNS
     DNS -.->|Resolves to| StaticIP
@@ -33,5 +35,6 @@ graph TD
     Redirect -.->|301| Ingress
     Ingress -->|HTTP| SvcFront
     SvcFront -->|Selects| PodFront
-    PodFront -->|Proxy /solve| SvcBack
+    PodFront -->|"Proxy /solve, /solve-stream (SSE)"| SvcBack
     SvcBack -->|Selects| PodBack
+    PodBack -->|Validate words| ExternalAPIs

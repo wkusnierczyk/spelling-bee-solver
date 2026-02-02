@@ -1,6 +1,6 @@
 [package]
 name = "sbs"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Your Name <your.email@example.com>"]
 description = "Spelling Bee Solver Core Library"
@@ -21,6 +21,8 @@ clap = { version = "4.0", features = ["derive"] }
 # Service Dependencies
 actix-web = "4.4"
 actix-cors = "0.6"
+tokio = { version = "1", features = ["sync"] }
+futures = "0.3"
 
 [dev-dependencies]
 tempfile = "3.3"
