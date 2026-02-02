@@ -68,18 +68,6 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: Inject Version (Single Source of Truth)
-        shell: bash
-        run: |
-          VERSION="${{ needs.create-draft.outputs.version }}"
-          echo "Patching Cargo.toml to version $VERSION"
-          
-          # Perl is consistent across Linux and macOS runners
-          perl -pi -e "s/^version = \".*\"/version = \"$VERSION\"/" sbs-backend/Cargo.toml
-          
-          # Verify
-          grep "version =" sbs-backend/Cargo.toml
-
       - name: Build Release
         run: |
           cd sbs-backend
@@ -111,14 +99,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 20
-
-      - name: Inject Version
-        run: |
-          cd sbs-frontend
-          VERSION="${{ needs.create-draft.outputs.version }}"
-          echo "Patching package.json to version $VERSION"
-          # npm version updates package.json without creating a git commit
-          npm version $VERSION --no-git-tag-version
 
       - name: Build
         run: |
