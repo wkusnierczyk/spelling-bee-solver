@@ -27,8 +27,8 @@ async fn health() -> impl Responder {
 async fn solve_puzzle(data: web::Data<AppState>, config_json: web::Json<Config>) -> impl Responder {
     let config = config_json.into_inner();
 
-    if config.letters.is_none() || config.present.is_none() {
-        return HttpResponse::BadRequest().body("Missing letters or present char");
+    if config.letters.is_none() {
+        return HttpResponse::BadRequest().body("Missing letters");
     }
 
     #[cfg(feature = "validator")]
@@ -81,8 +81,8 @@ async fn solve_stream(data: web::Data<AppState>, config_json: web::Json<Config>)
 
     let config = config_json.into_inner();
 
-    if config.letters.is_none() || config.present.is_none() {
-        return HttpResponse::BadRequest().body("Missing letters or present char");
+    if config.letters.is_none() {
+        return HttpResponse::BadRequest().body("Missing letters");
     }
 
     let validator_kind = config.validator.clone();

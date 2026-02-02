@@ -122,8 +122,8 @@ fn main() {
     #[cfg(feature = "validator")]
     let validator_url = args.validator_url.or(config.validator_url.clone());
 
-    if config.letters.is_none() || config.present.is_none() {
-        eprintln!("Error: letters and present letters are required.");
+    if config.letters.is_none() {
+        eprintln!("Error: letters are required.");
         process::exit(1);
     }
 

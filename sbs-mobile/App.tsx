@@ -144,7 +144,7 @@ function App() {
     clearResults();
   };
 
-  const isValid = letters.length > 0 && present.length > 0;
+  const isValid = letters.length > 0;
 
   const handleSolve = async () => {
     setLoading(true);
