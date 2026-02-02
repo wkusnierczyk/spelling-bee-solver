@@ -57,9 +57,6 @@ You can provide your own dictionary API URL. The system will probe it (by lookin
 
 ## Future features
 
-The Spelling Bee Solver simply lists all the generated words in the GUI.
-A future release will allow the user to download those words as a text file.
-
 The Spelling Bee Solver frontend talks to the backend via a RESTful API.
 A future release may expose the API publicly, to make interaction with the frontend an optional convenience.
 
