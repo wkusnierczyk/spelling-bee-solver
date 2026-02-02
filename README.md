@@ -1,4 +1,15 @@
-# Spelling Bee Solver
+<table>
+  <tr>
+    <td>
+      <img src="https://raw.githubusercontent.com/wkusnierczyk/spelling-bee-solver/main/graphics/icon.png" alt="logo" width="200" />
+    </td>
+    <td>
+      <p><strong>Spelling Bee Solver</strong>:
+      A generalized solver for <a href="https://en.wikipedia.org/wiki/Spelling_bee">Spelling Bee</a> word puzzles.</p>
+      <p>Native CLI, web frontend, Android app, Docker &amp; Kubernetes deployment — all powered by a Rust backend.</p>
+    </td>
+  </tr>
+</table>
 
 [![Native](https://github.com/wkusnierczyk/spelling-bee-solver/actions/workflows/backend.yml/badge.svg)](https://github.com/wkusnierczyk/spelling-bee-solver/actions/workflows/backend.yml)
 [![Mobile](https://github.com/wkusnierczyk/spelling-bee-solver/actions/workflows/mobile.yml/badge.svg)](https://github.com/wkusnierczyk/spelling-bee-solver/actions/workflows/mobile.yml)
