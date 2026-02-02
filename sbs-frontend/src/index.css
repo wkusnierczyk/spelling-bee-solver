@@ -43,6 +43,7 @@ input:focus, select:focus, button:focus {
 button {
   width: 100%;
   padding: 0.75rem;
+  margin-bottom: 1rem;
   background-color: #007bff;
   color: white;
   border: none;
