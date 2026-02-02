@@ -393,6 +393,54 @@ mod tests {
     }
 
     #[test]
+    fn test_solver_case_sensitive_walrus_scenario() {
+        let mut config = Config::new().with_letters("Walrus").with_present("Wl");
+        config.case_sensitive = Some(true);
+        config.minimal_word_length = Some(4);
+
+        let solver = Solver::new(config);
+        let dict =
+            Dictionary::from_words(&["awls", "laws", "slaw", "wall", "walls", "walrus", "lure"]);
+
+        let results = solver.solve(&dict).expect("Solver failed");
+
+        assert!(
+            !results.contains("awls"),
+            "awls does not start with w"
+        );
+        assert!(!results.contains("laws"), "laws does not start with w");
+        assert!(!results.contains("slaw"), "slaw does not start with w");
+        assert!(!results.contains("lure"), "lure does not contain l... wait it does, but no w start");
+        assert!(results.contains("wall"), "wall starts with w and contains l");
+        assert!(results.contains("walls"), "walls starts with w and contains l");
+        assert!(results.contains("walrus"), "walrus starts with w and contains l");
+    }
+
+    #[test]
+    fn test_solver_case_sensitive_all_lowercase_no_constraint() {
+        // When case_sensitive=true but all letters are lowercase, no positional constraint applies
+        let mut config = Config::new().with_letters("walrus").with_present("wl");
+        config.case_sensitive = Some(true);
+        config.minimal_word_length = Some(4);
+
+        let solver = Solver::new(config);
+        let dict = Dictionary::from_words(&["awls", "laws", "wall", "walrus"]);
+
+        let results = solver.solve(&dict).expect("Solver failed");
+
+        assert!(
+            results.contains("awls"),
+            "all lowercase: w is an anywhere letter, no start constraint"
+        );
+        assert!(
+            results.contains("laws"),
+            "all lowercase: w is an anywhere letter"
+        );
+        assert!(results.contains("wall"));
+        assert!(results.contains("walrus"));
+    }
+
+    #[test]
     fn test_solver_case_sensitive_multiple_uppercase_required_error() {
         let mut config = Config::new().with_letters("ABcde").with_present("AB");
         config.case_sensitive = Some(true);

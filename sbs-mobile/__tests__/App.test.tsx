@@ -153,6 +153,44 @@ describe('App', () => {
     expect(mockSolver.solve).toHaveBeenCalledWith('abcdefg', 'a', 0, 0, 0, false);
   });
 
+  it('performs case-sensitive offline solve with preserved uppercase', async () => {
+    mockSolver.solve.mockResolvedValue('{"words":["wall","walrus"]}');
+
+    let tree: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      tree = ReactTestRenderer.create(<App />);
+    });
+
+    // Toggle case-sensitive ON first
+    const switches = tree!.root.findAll(
+      n => n.props && typeof n.props.onValueChange === 'function',
+    );
+    // Case-sensitive toggle is the first Switch after LetterInput
+    const caseSensitiveSwitch = switches[0];
+    await act(async () => {
+      caseSensitiveSwitch.props.onValueChange(true);
+    });
+
+    // Now enter mixed-case letters
+    const inputs = tree!.root.findAllByType('TextInput' as any);
+    await act(async () => {
+      inputs[0].props.onChangeText('Walrus');
+    });
+    await act(async () => {
+      inputs[1].props.onChangeText('Wl');
+    });
+
+    // Find and press solve
+    const pressables = tree!.root.findAllByProps({disabled: false}).filter(
+      n => n.props.onPress,
+    );
+    await act(async () => {
+      await pressables[0].props.onPress();
+    });
+
+    expect(mockSolver.solve).toHaveBeenCalledWith('Walrus', 'Wl', 0, 0, 0, true);
+  });
+
   it('falls back to offline when online fails', async () => {
     mockFetch.mockRejectedValue(new Error('Network error'));
     mockSolver.solve.mockResolvedValue('{"words":["fallback"]}');

@@ -4,6 +4,7 @@ import {StyleSheet, Text, TextInput, View} from 'react-native';
 interface LetterInputProps {
   letters: string;
   present: string;
+  caseSensitive: boolean;
   onLettersChange: (value: string) => void;
   onPresentChange: (value: string) => void;
 }
@@ -11,9 +12,11 @@ interface LetterInputProps {
 export default function LetterInput({
   letters,
   present,
+  caseSensitive,
   onLettersChange,
   onPresentChange,
 }: LetterInputProps) {
+  const autoCapitalize = caseSensitive ? 'sentences' : 'none';
   return (
     <View>
       <View style={styles.inputGroup}>
@@ -24,7 +27,7 @@ export default function LetterInput({
           placeholderTextColor="#999"
           value={letters}
           onChangeText={onLettersChange}
-          autoCapitalize="none"
+          autoCapitalize={autoCapitalize}
           autoCorrect={false}
         />
       </View>
@@ -37,7 +40,7 @@ export default function LetterInput({
           placeholderTextColor="#999"
           value={present}
           onChangeText={onPresentChange}
-          autoCapitalize="none"
+          autoCapitalize={autoCapitalize}
           autoCorrect={false}
         />
       </View>

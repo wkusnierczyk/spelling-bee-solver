@@ -263,6 +263,7 @@ function App() {
       <LetterInput
         letters={letters}
         present={present}
+        caseSensitive={caseSensitive}
         onLettersChange={handleLettersChange}
         onPresentChange={handlePresentChange}
       />
