@@ -34,16 +34,15 @@ export default function LetterInput({
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Required Letter</Text>
+        <Text style={styles.label}>Required Letters</Text>
         <TextInput
           style={styles.input}
-          placeholder={letters.length > 0 ? `e.g. ${letters[0]}` : ''}
+          placeholder={letters.length > 1 ? `e.g. ${letters[0]} or ${letters.slice(0, 2)}` : ''}
           placeholderTextColor="#999"
           value={present}
           onChangeText={onPresentChange}
           autoCapitalize="none"
           autoCorrect={false}
-          maxLength={1}
         />
       </View>
 

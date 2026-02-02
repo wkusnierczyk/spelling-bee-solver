@@ -21,7 +21,7 @@ describe('LetterInput', () => {
     });
     const inputs = tree!.root.findAllByType('TextInput' as any);
     const presentInput = inputs[1];
-    expect(presentInput.props.placeholder).toBe('e.g. a');
+    expect(presentInput.props.placeholder).toBe('e.g. a or ab');
   });
 
   it('shows empty placeholder when no letters', async () => {

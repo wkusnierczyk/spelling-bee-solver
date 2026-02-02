@@ -141,6 +141,22 @@ mod tests {
     }
 
     #[test]
+    fn test_solver_multiple_required_letters() {
+        let config = Config::new().with_letters("abcdefg").with_present("af");
+
+        let solver = Solver::new(config);
+        let dict = Dictionary::from_words(&["fade", "faced", "bead", "cafe", "face"]);
+
+        let results = solver.solve(&dict).expect("Solver failed");
+
+        assert!(results.contains("fade"), "contains both a and f");
+        assert!(results.contains("faced"), "contains both a and f");
+        assert!(results.contains("cafe"), "contains both a and f");
+        assert!(results.contains("face"), "contains both a and f");
+        assert!(!results.contains("bead"), "missing f");
+    }
+
+    #[test]
     fn test_solver_min_length() {
         let mut config = Config::new().with_letters("abcde").with_present("a");
         config.minimal_word_length = Some(5);
