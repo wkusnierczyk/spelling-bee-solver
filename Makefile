@@ -34,7 +34,8 @@ ifneq (,$(wildcard ./.env))
 endif
 
 .PHONY: \
-	setup-dictionary \
+	setup-dictionary dictionary-setup \
+	setup-hooks hooks-setup \
 	test \
 	lint \
 	format \
@@ -42,32 +43,35 @@ endif
 	test \
 	lint \
 	format \
-	build-backend \
-	install-backend \
+	build-backend backend-build \
+	install-backend backend-install \
+	start-backend backend-start \
 	run-backend \
-	build-frontend \
+	build-frontend frontend-build \
+	start-frontend frontend-start \
 	run-frontend \
-	build-cli \
-	install-cli \
-	start-local \
-	stop-local \
+	build-cli cli-build \
+	install-cli cli-install \
+	start-local local-start \
+	stop-local local-stop \
 	status \
 	deploy-cloud \
 	build-architecture \
 	version \
-	version-set \
+	version-set set-version \
+	generate-diagrams diagrams-generate \
 	bump-patch \
 	bump-minor \
 	bump-major \
-	setup-android \
-	build-android \
-	clean-android \
-	setup-mobile \
-	build-mobile \
-	check-mobile \
-	run-mobile \
-	clean-mobile \
-	test-mobile \
+	setup-android android-setup \
+	build-android android-build \
+	clean-android android-clean \
+	setup-mobile mobile-setup \
+	build-mobile mobile-build \
+	check-mobile mobile-check \
+	run-mobile mobile-run \
+	clean-mobile mobile-clean \
+	test-mobile mobile-test \
 	clean-docker \
 	start-docker stop-docker test-docker open-docker \
 	docker-start docker-stop docker-test docker-clean docker-open \
@@ -90,6 +94,9 @@ setup-dictionary: ## Force download of the dictionary (overwrites if exists)
 	$(call info, "Downloading fresh dictionary to $(SBS_DICT)...")
 	@mkdir -p $(dir $(SBS_DICT))
 	@curl -L -o $(SBS_DICT) $(DICT_URL) || (rm -f $(SBS_DICT) && exit 1)
+
+# Aliases
+dictionary-setup: setup-dictionary ## Alias for setup-dictionary
 
 
 # --- Hygiene & Testing ---
@@ -142,6 +149,10 @@ setup-hooks: ## Configure git to use the repo's .githooks directory
 	@git config core.hooksPath .githooks
 	$(call info, "Git hooks configured.")
 
+# Aliases
+hooks-setup: setup-hooks ## Alias for setup-hooks
+set-version: version-set ## Alias for version-set
+
 
 # --- CLI Management ---
 
@@ -152,6 +163,10 @@ build-cli:
 install-cli:
 	$(call info, "Installing CLI...")
 	cd $(SBS_BACKEND_DIR) && cargo install --path . --bin $(SBS_CLI_NAME) --force
+
+# Aliases
+cli-build: build-cli ## Alias for build-cli
+cli-install: install-cli ## Alias for install-cli
 
 
 # --- Backend Management ---
@@ -168,6 +183,11 @@ start-backend: install-backend
 	$(call info, "Starting backend...")
 	cd $(SBS_BACKEND_DIR) && SBS_DICT=$(SBS_DICT) $(SBS_BACKEND_NAME)
 
+# Aliases
+backend-build: build-backend ## Alias for build-backend
+backend-install: install-backend ## Alias for install-backend
+backend-start: start-backend ## Alias for start-backend
+
 
 # --- Frontend Management ---
 
@@ -178,6 +198,10 @@ build-frontend:
 start-frontend: ## Run the frontend dev server in the foreground
 	$(call info, "Starting frontend...")
 	cd $(SBS_FRONTEND_DIR) && npm run dev
+
+# Aliases
+frontend-build: build-frontend ## Alias for build-frontend
+frontend-start: start-frontend ## Alias for start-frontend
 
 
 # --- Local Orchestration ---
@@ -208,6 +232,10 @@ stop-local: ## Stop background services and verify
 	@# Cleanup potential orphaned vite/node processes
 	@lsof -ti:5173 | xargs kill -9 >/dev/null 2>&1 || true
 	$(call info, "Cleanup complete.")
+
+# Aliases
+local-start: start-local ## Alias for start-local
+local-stop: stop-local ## Alias for stop-local
 
 
 # --- Backend Docker Targets ---
@@ -677,6 +705,11 @@ clean-android: ## Remove Android JNI libraries
 	rm -rf $(ANDROID_JNILIBS)
 	$(call info, "Android clean complete.")
 
+# Aliases
+android-setup: setup-android ## Alias for setup-android
+android-build: build-android ## Alias for build-android
+android-clean: clean-android ## Alias for clean-android
+
 
 # --- React Native Mobile ---
 
@@ -709,6 +742,14 @@ clean-mobile: ## Clean mobile build artifacts (Gradle, bundled JS)
 	rm -f $(SBS_MOBILE_DIR)/android/app/src/main/assets/index.android.bundle
 	$(call info, "Mobile clean complete.")
 
+# Aliases
+mobile-setup: setup-mobile ## Alias for setup-mobile
+mobile-build: build-mobile ## Alias for build-mobile
+mobile-run: run-mobile ## Alias for run-mobile
+mobile-check: check-mobile ## Alias for check-mobile
+mobile-test: test-mobile ## Alias for test-mobile
+mobile-clean: clean-mobile ## Alias for clean-mobile
+
 
 generate-diagrams: ## Build all architecture diagrams with mmdc
 	$(call info, "Building architecture diagrams...")
@@ -716,3 +757,6 @@ generate-diagrams: ## Build all architecture diagrams with mmdc
 		echo "Processing $$file..."; \
 		mmdc -i "$$file" -o "$${file%.mmd}.png"; \
 	done
+
+# Aliases
+diagrams-generate: generate-diagrams ## Alias for generate-diagrams
