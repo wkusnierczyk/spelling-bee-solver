@@ -16,7 +16,7 @@
 [![Docker](https://github.com/wkusnierczyk/spelling-bee-solver/actions/workflows/docker.yml/badge.svg)](https://github.com/wkusnierczyk/spelling-bee-solver/actions/workflows/docker.yml)
 [![Compose](https://github.com/wkusnierczyk/spelling-bee-solver/actions/workflows/compose.yml/badge.svg)](https://github.com/wkusnierczyk/spelling-bee-solver/actions/workflows/compose.yml)
 [![Minikube](https://github.com/wkusnierczyk/spelling-bee-solver/actions/workflows/minikube.yml/badge.svg)](https://github.com/wkusnierczyk/spelling-bee-solver/actions/workflows/minikube.yml)
-[![GCP](https://github.com/wkusnierczyk/spelling-bee-solver/actions/workflows/gcp.yml/badge.svg)](https://github.com/wkusnierczyk/spelling-bee-solver/actions/workflows/gcp.yml)
+[![GCP](https://github.com/wkusnierczyk/spelling-bee-solver/actions/workflows/gcp.yml/badge.svg)](https://github.com/wkusnierczyk/spelling-bee-solver/actions/workflows/gcp.yml)  
 [![Release](https://img.shields.io/github/v/release/wkusnierczyk/spelling-bee-solver)](https://github.com/wkusnierczyk/spelling-bee-solver/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
