@@ -21,6 +21,10 @@ npm-debug.log
 yarn-error.log
 .env.local
 
+# Mobile build artifacts
+sbs-mobile/android/app/src/main/jniLibs/**/*.so
+sbs-mobile/android/app/src/main/assets/index.android.bundle
+
 # Logs
 frontend.log
 backend.log

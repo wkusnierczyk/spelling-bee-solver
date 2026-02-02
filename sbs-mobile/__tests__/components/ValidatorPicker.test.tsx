@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactTestRenderer, {act} from 'react-test-renderer';
+import {Switch} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ValidatorPicker from '../../src/components/ValidatorPicker';
 
@@ -11,33 +12,45 @@ beforeEach(() => {
 
 describe('ValidatorPicker', () => {
   const defaultProps = {
+    enabled: false,
     validator: '' as const,
     apiKey: '',
     validatorUrl: '',
+    onToggle: jest.fn(),
     onValidatorChange: jest.fn(),
     onApiKeyChange: jest.fn(),
     onValidatorUrlChange: jest.fn(),
   };
 
-  it('renders Picker with correct options', async () => {
+  it('hides picker when disabled', async () => {
     let tree: ReactTestRenderer.ReactTestRenderer;
     await act(async () => {
       tree = ReactTestRenderer.create(
         <ValidatorPicker {...defaultProps} />,
       );
     });
-    const picker = tree!.root.findByType('Picker' as any);
-    const items = picker.findAllByType('Picker.Item' as any);
-    expect(items).toHaveLength(5);
-    expect(items[0].props.value).toBe('');
-    expect(items[1].props.value).toBe('free-dictionary');
+    const pickers = tree!.root.findAllByType('Picker' as any);
+    expect(pickers).toHaveLength(0);
   });
 
-  it('shows API key input for merriam-webster', async () => {
+  it('shows picker when enabled', async () => {
     let tree: ReactTestRenderer.ReactTestRenderer;
     await act(async () => {
       tree = ReactTestRenderer.create(
-        <ValidatorPicker {...defaultProps} validator="merriam-webster" />,
+        <ValidatorPicker {...defaultProps} enabled={true} validator="free-dictionary" />,
+      );
+    });
+    const picker = tree!.root.findByType('Picker' as any);
+    const items = picker.findAllByType('Picker.Item' as any);
+    expect(items).toHaveLength(4);
+    expect(items[0].props.value).toBe('free-dictionary');
+  });
+
+  it('shows API key input for merriam-webster when enabled', async () => {
+    let tree: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      tree = ReactTestRenderer.create(
+        <ValidatorPicker {...defaultProps} enabled={true} validator="merriam-webster" />,
       );
     });
     const inputs = tree!.root.findAllByType('TextInput' as any);
@@ -45,11 +58,11 @@ describe('ValidatorPicker', () => {
     expect(apiKeyInput).toBeTruthy();
   });
 
-  it('shows custom URL input for custom validator', async () => {
+  it('shows custom URL input for custom validator when enabled', async () => {
     let tree: ReactTestRenderer.ReactTestRenderer;
     await act(async () => {
       tree = ReactTestRenderer.create(
-        <ValidatorPicker {...defaultProps} validator="custom" />,
+        <ValidatorPicker {...defaultProps} enabled={true} validator="custom" />,
       );
     });
     const inputs = tree!.root.findAllByType('TextInput' as any);
@@ -57,12 +70,38 @@ describe('ValidatorPicker', () => {
     expect(urlInput).toBeTruthy();
   });
 
-  it('loads persisted API key from AsyncStorage on validator change', async () => {
-    mockAsyncStorage.getItem.mockResolvedValue('stored-key');
+  it('loads persisted validator and enabled state on mount', async () => {
+    mockAsyncStorage.getItem.mockImplementation((key) => {
+      if (key === 'lastValidator') {
+        return Promise.resolve('wordnik');
+      }
+      if (key === 'validatorEnabled') {
+        return Promise.resolve('true');
+      }
+      return Promise.resolve(null);
+    });
 
     await act(async () => {
       ReactTestRenderer.create(
-        <ValidatorPicker {...defaultProps} validator="merriam-webster" />,
+        <ValidatorPicker {...defaultProps} />,
+      );
+    });
+
+    expect(defaultProps.onValidatorChange).toHaveBeenCalledWith('wordnik');
+    expect(defaultProps.onToggle).toHaveBeenCalledWith(true);
+  });
+
+  it('loads persisted API key from AsyncStorage on validator change', async () => {
+    mockAsyncStorage.getItem.mockImplementation((key) => {
+      if (key === 'apiKey:merriam-webster') {
+        return Promise.resolve('stored-key');
+      }
+      return Promise.resolve(null);
+    });
+
+    await act(async () => {
+      ReactTestRenderer.create(
+        <ValidatorPicker {...defaultProps} enabled={true} validator="merriam-webster" />,
       );
     });
 
@@ -70,11 +109,39 @@ describe('ValidatorPicker', () => {
     expect(defaultProps.onApiKeyChange).toHaveBeenCalledWith('stored-key');
   });
 
+  it('persists validator choice to AsyncStorage', async () => {
+    let tree: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      tree = ReactTestRenderer.create(
+        <ValidatorPicker {...defaultProps} enabled={true} validator="free-dictionary" />,
+      );
+    });
+    const picker = tree!.root.findByType('Picker' as any);
+    act(() => {
+      picker.props.onValueChange('wordnik');
+    });
+    expect(mockAsyncStorage.setItem).toHaveBeenCalledWith('lastValidator', 'wordnik');
+  });
+
+  it('persists toggle state to AsyncStorage', async () => {
+    let tree: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      tree = ReactTestRenderer.create(
+        <ValidatorPicker {...defaultProps} />,
+      );
+    });
+    const toggle = tree!.root.findByType(Switch);
+    act(() => {
+      toggle.props.onValueChange(true);
+    });
+    expect(mockAsyncStorage.setItem).toHaveBeenCalledWith('validatorEnabled', 'true');
+  });
+
   it('saves API key to AsyncStorage', async () => {
     let tree: ReactTestRenderer.ReactTestRenderer;
     await act(async () => {
       tree = ReactTestRenderer.create(
-        <ValidatorPicker {...defaultProps} validator="wordnik" />,
+        <ValidatorPicker {...defaultProps} enabled={true} validator="wordnik" />,
       );
     });
     const inputs = tree!.root.findAllByType('TextInput' as any);
@@ -90,7 +157,7 @@ describe('ValidatorPicker', () => {
     let tree: ReactTestRenderer.ReactTestRenderer;
     await act(async () => {
       tree = ReactTestRenderer.create(
-        <ValidatorPicker {...defaultProps} validator="merriam-webster" />,
+        <ValidatorPicker {...defaultProps} enabled={true} validator="merriam-webster" />,
       );
     });
     const inputs = tree!.root.findAllByType('TextInput' as any);
