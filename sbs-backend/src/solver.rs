@@ -141,6 +141,88 @@ mod tests {
     }
 
     #[test]
+    fn test_solver_min_length() {
+        let mut config = Config::new().with_letters("abcde").with_present("a");
+        config.minimal_word_length = Some(5);
+
+        let solver = Solver::new(config);
+        let dict = Dictionary::from_words(&["abcd", "abcde", "ace", "abcdef"]);
+
+        let results = solver.solve(&dict).expect("Solver failed");
+
+        assert!(
+            !results.contains("abcd"),
+            "4-letter word should be excluded with min=5"
+        );
+        assert!(
+            results.contains("abcde"),
+            "5-letter word should be included"
+        );
+        assert!(!results.contains("ace"), "3-letter word should be excluded");
+    }
+
+    #[test]
+    fn test_solver_max_length() {
+        let mut config = Config::new().with_letters("abcde").with_present("a");
+        config.minimal_word_length = Some(2);
+        config.maximal_word_length = Some(4);
+
+        let solver = Solver::new(config);
+        let dict = Dictionary::from_words(&["ab", "abc", "abcd", "abcde"]);
+
+        let results = solver.solve(&dict).expect("Solver failed");
+
+        assert!(
+            results.contains("abcd"),
+            "4-letter word should be included with max=4"
+        );
+        assert!(
+            !results.contains("abcde"),
+            "5-letter word should be excluded with max=4"
+        );
+    }
+
+    #[test]
+    fn test_solver_min_and_max_length() {
+        let mut config = Config::new().with_letters("abcde").with_present("a");
+        config.minimal_word_length = Some(3);
+        config.maximal_word_length = Some(4);
+
+        let solver = Solver::new(config);
+        let dict = Dictionary::from_words(&["ab", "abc", "abcd", "abcde"]);
+
+        let results = solver.solve(&dict).expect("Solver failed");
+
+        assert!(!results.contains("ab"), "2-letter word excluded");
+        assert!(results.contains("abc"), "3-letter word included");
+        assert!(results.contains("abcd"), "4-letter word included");
+        assert!(!results.contains("abcde"), "5-letter word excluded");
+    }
+
+    #[test]
+    fn test_solver_default_min_length() {
+        let config = Config::new().with_letters("abcde").with_present("a");
+
+        let solver = Solver::new(config);
+        let dict = Dictionary::from_words(&["ab", "abc", "abcd", "abcde"]);
+
+        let results = solver.solve(&dict).expect("Solver failed");
+
+        assert!(
+            !results.contains("ab"),
+            "2-letter word excluded by default min=4"
+        );
+        assert!(
+            !results.contains("abc"),
+            "3-letter word excluded by default min=4"
+        );
+        assert!(
+            results.contains("abcd"),
+            "4-letter word included by default min=4"
+        );
+    }
+
+    #[test]
     fn test_solver_repeats() {
         let mut config = Config::new().with_letters("ab").with_present("a");
         config.repeats = Some(1);

@@ -38,6 +38,10 @@ struct Args {
     #[arg(long, help = "Custom validator URL (use with --validator custom)")]
     validator_url: Option<String>,
     #[arg(long)]
+    minimal_word_length: Option<usize>,
+    #[arg(long)]
+    maximal_word_length: Option<usize>,
+    #[arg(long)]
     about: bool,
 }
 
@@ -80,6 +84,12 @@ fn main() {
     }
     if let Some(o) = args.output {
         config.output = Some(o);
+    }
+    if let Some(n) = args.minimal_word_length {
+        config.minimal_word_length = Some(n);
+    }
+    if let Some(n) = args.maximal_word_length {
+        config.maximal_word_length = Some(n);
     }
 
     // Parse validator from CLI flag

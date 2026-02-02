@@ -423,6 +423,54 @@ mod tests {
         unsafe { sbs_free_dictionary(dict) };
     }
 
+    // --- Word length constraint tests ---
+
+    #[test]
+    fn test_solve_with_minimal_word_length() {
+        let tmp = make_dict_file(&["ab", "abc", "abcd", "abcde"]);
+        let dict = load_dict(&tmp);
+
+        let parsed = solve_json(
+            dict,
+            r#"{"letters":"abcde","present":"a","minimal-word-length":5}"#,
+        );
+        let words: Vec<&str> = parsed["words"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| v.as_str().unwrap())
+            .collect();
+
+        assert!(words.contains(&"abcde"));
+        assert!(!words.contains(&"abcd"));
+        assert!(!words.contains(&"abc"));
+
+        unsafe { sbs_free_dictionary(dict) };
+    }
+
+    #[test]
+    fn test_solve_with_maximal_word_length() {
+        let tmp = make_dict_file(&["ab", "abc", "abcd", "abcde"]);
+        let dict = load_dict(&tmp);
+
+        let parsed = solve_json(
+            dict,
+            r#"{"letters":"abcde","present":"a","minimal-word-length":2,"maximal-word-length":3}"#,
+        );
+        let words: Vec<&str> = parsed["words"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| v.as_str().unwrap())
+            .collect();
+
+        assert!(words.contains(&"ab"));
+        assert!(words.contains(&"abc"));
+        assert!(!words.contains(&"abcd"));
+
+        unsafe { sbs_free_dictionary(dict) };
+    }
+
     // --- Input size limit test ---
 
     #[test]

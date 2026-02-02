@@ -83,6 +83,56 @@ button:disabled {
   color: #666;
   font-size: 0.9rem;
 }
+.toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.toggle-row > label:first-child {
+  margin-bottom: 0;
+}
+.toggle {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  margin-bottom: 0;
+}
+.toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+  background-color: #ccc;
+  border-radius: 24px;
+  transition: background-color 0.2s;
+  cursor: pointer;
+}
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+.toggle input:checked + .toggle-slider {
+  background-color: #007bff;
+}
+.toggle input:checked + .toggle-slider::before {
+  transform: translateX(20px);
+}
+.toggle input:focus-visible + .toggle-slider {
+  outline: 2px solid #0056b3;
+  outline-offset: 2px;
+}
 .progress {
   color: #007bff;
   font-size: 0.875rem;
