@@ -926,7 +926,7 @@ make test-mobile
 sbs --about
 
 sbs: Spelling Bee Solver tool
-├─ version:   0.2.0
+├─ version:   0.4.0
 ├─ developer: mailto:waclaw.kusnierczyk@gmail.com
 ├─ source:    https://github.com/wkusnierczyk/spelling-bee-solver
 ├─ licence:   MIT https://opensource.org/licenses/MIT
