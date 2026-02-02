@@ -10,6 +10,9 @@ sbs-solver/data/dictionary.txt
 generate.py
 refactor.py
 
+# Audit trail (untracked)
+CLAUDE_AUDIT.md
+
 # Secrets
 .env
 

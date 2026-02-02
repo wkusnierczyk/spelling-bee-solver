@@ -48,6 +48,8 @@ struct Args {
     )]
     format: String,
     #[arg(long)]
+    case_sensitive: bool,
+    #[arg(long)]
     about: bool,
 }
 
@@ -96,6 +98,9 @@ fn main() {
     }
     if let Some(n) = args.maximal_word_length {
         config.maximal_word_length = Some(n);
+    }
+    if args.case_sensitive {
+        config.case_sensitive = Some(true);
     }
 
     // Parse validator from CLI flag

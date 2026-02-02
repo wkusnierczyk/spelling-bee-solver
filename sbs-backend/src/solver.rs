@@ -12,7 +12,10 @@ pub struct Solver {
 /// Context struct to reduce argument count in recursion
 struct SearchContext<'a> {
     allowed: &'a HashSet<char>,
+    anywhere: &'a HashSet<char>,
     required: &'a HashSet<char>,
+    required_start: Option<char>,
+    case_sensitive: bool,
     min_len: usize,
     max_len: usize,
     max_repeats: Option<usize>,
@@ -25,44 +28,79 @@ impl Solver {
     }
 
     pub fn solve(&self, dictionary: &Dictionary) -> Result<HashSet<String>, SbsError> {
+        let case_sensitive = self.config.case_sensitive.unwrap_or(false);
+
         let letters_str = self
             .config
             .letters
             .as_ref()
-            .ok_or(SbsError::ConfigError("No letters provided".to_string()))?
-            .to_lowercase();
+            .ok_or(SbsError::ConfigError("No letters provided".to_string()))?;
 
-        let required_str = self
-            .config
-            .present
-            .as_ref()
-            .ok_or(SbsError::ConfigError(
-                "No required letter provided".to_string(),
-            ))?
-            .to_lowercase();
+        let required_str = self.config.present.as_ref().ok_or(SbsError::ConfigError(
+            "No required letter provided".to_string(),
+        ))?;
 
         let min_len = self.config.minimal_word_length.unwrap_or(4);
         let max_len = self.config.maximal_word_length.unwrap_or(usize::MAX);
         let max_repeats = self.config.repeats;
 
-        let allowed_chars: HashSet<char> = letters_str.chars().collect();
-        let required_chars: HashSet<char> = required_str.chars().collect();
+        let (allowed_chars, anywhere_chars, required_chars, required_start) = if case_sensitive {
+            // Uppercase letters in `letters` can only appear at position 0
+            let mut start_only: HashSet<char> = HashSet::new();
+            let mut anywhere: HashSet<char> = HashSet::new();
+            for ch in letters_str.chars() {
+                if ch.is_uppercase() {
+                    start_only.insert(ch.to_lowercase().next().unwrap());
+                } else {
+                    anywhere.insert(ch);
+                }
+            }
+            let allowed: HashSet<char> = start_only.union(&anywhere).copied().collect();
+
+            // Uppercase in `present` means required at start (max 1)
+            let mut req_start: Option<char> = None;
+            let mut required: HashSet<char> = HashSet::new();
+            for ch in required_str.chars() {
+                if ch.is_uppercase() {
+                    let lower = ch.to_lowercase().next().unwrap();
+                    if req_start.is_some() {
+                        return Err(SbsError::ConfigError(
+                            "At most one uppercase required letter allowed in case-sensitive mode"
+                                .to_string(),
+                        ));
+                    }
+                    req_start = Some(lower);
+                    required.insert(lower);
+                } else {
+                    required.insert(ch);
+                }
+            }
+
+            (allowed, anywhere, required, req_start)
+        } else {
+            let lowered = letters_str.to_lowercase();
+            let allowed: HashSet<char> = lowered.chars().collect();
+            let anywhere = allowed.clone();
+            let required: HashSet<char> = required_str.to_lowercase().chars().collect();
+            (allowed, anywhere, required, None)
+        };
 
         let mut results = HashSet::new();
 
         let mut ctx = SearchContext {
             allowed: &allowed_chars,
+            anywhere: &anywhere_chars,
             required: &required_chars,
+            required_start,
+            case_sensitive,
             min_len,
             max_len,
             max_repeats,
             results: &mut results,
         };
 
-        // Track character usage counts
         let mut char_counts = HashMap::new();
 
-        // Start DFS from root
         Self::find_words(&dictionary.root, String::new(), &mut char_counts, &mut ctx);
 
         Ok(results)
@@ -82,10 +120,17 @@ impl Solver {
         if node.is_end_of_word && current_word.len() >= ctx.min_len {
             let mut all_req_present = true;
             for req in ctx.required {
-                // Check counts directly instead of string scan
                 if *char_counts.get(req).unwrap_or(&0) == 0 {
                     all_req_present = false;
                     break;
+                }
+            }
+            // If case-sensitive and required_start is set, first char must match
+            if all_req_present {
+                if let Some(start_char) = ctx.required_start {
+                    if !current_word.starts_with(start_char) {
+                        all_req_present = false;
+                    }
                 }
             }
             if all_req_present {
@@ -93,26 +138,32 @@ impl Solver {
             }
         }
 
+        let depth = current_word.len();
+
         // Recursive Backtracking
         for (ch, next_node) in &node.children {
-            if ctx.allowed.contains(ch) {
+            // In case-sensitive mode, start-only chars can only appear at depth 0
+            let char_allowed = if ctx.case_sensitive && depth > 0 {
+                ctx.anywhere.contains(ch)
+            } else {
+                ctx.allowed.contains(ch)
+            };
+
+            if char_allowed {
                 // Check repetition limit
                 let count = *char_counts.get(ch).unwrap_or(&0);
                 if let Some(limit) = ctx.max_repeats {
                     if count >= limit {
-                        continue; // Skip this branch
+                        continue;
                     }
                 }
 
-                // Update state
                 let mut next_word = current_word.clone();
                 next_word.push(*ch);
                 *char_counts.entry(*ch).or_insert(0) += 1;
 
-                // Recurse
                 Self::find_words(next_node, next_word, char_counts, ctx);
 
-                // Backtrack (Restore state)
                 *char_counts.entry(*ch).or_insert(0) -= 1;
             }
         }
@@ -128,8 +179,6 @@ mod tests {
         let config = Config::new().with_letters("abcdefg").with_present("a");
 
         let solver = Solver::new(config);
-
-        // Inject mock dictionary
         let dict = Dictionary::from_words(&["bad", "fade", "faced", "zzzz", "bed"]);
 
         let results = solver.solve(&dict).expect("Solver failed");
@@ -242,7 +291,7 @@ mod tests {
     fn test_solver_repeats() {
         let mut config = Config::new().with_letters("ab").with_present("a");
         config.repeats = Some(1);
-        config.minimal_word_length = Some(2); // FIX: Allow short words for this test
+        config.minimal_word_length = Some(2);
 
         let solver = Solver::new(config);
         let dict = Dictionary::from_words(&["aa", "ab"]);
@@ -254,5 +303,166 @@ mod tests {
             !results.contains("aa"),
             "Result should NOT contain 'aa' due to repeat limit"
         );
+    }
+
+    // --- Case-sensitive mode tests ---
+
+    #[test]
+    fn test_solver_case_insensitive_default() {
+        // Uppercase input should be normalized when case_sensitive is off (default)
+        let config = Config::new().with_letters("ABCDEFG").with_present("A");
+
+        let solver = Solver::new(config);
+        let dict = Dictionary::from_words(&["fade", "faced", "bad"]);
+
+        let results = solver.solve(&dict).expect("Solver failed");
+
+        assert!(
+            results.contains("fade"),
+            "uppercase input should be normalized"
+        );
+        assert!(results.contains("faced"));
+    }
+
+    #[test]
+    fn test_solver_case_sensitive_start_only() {
+        // 'W' uppercase means 'w' can only appear at position 0
+        // 'a', 'r', 'e' are lowercase, can appear anywhere
+        let mut config = Config::new().with_letters("Ware").with_present("a");
+        config.case_sensitive = Some(true);
+        config.minimal_word_length = Some(3);
+
+        let solver = Solver::new(config);
+        // "war" starts with w — OK
+        // "raw" has w not at start — should be excluded
+        // "ware" starts with w — OK
+        // "area" has no w — OK (w is not required)
+        let dict = Dictionary::from_words(&["war", "raw", "ware", "area", "aw"]);
+
+        let results = solver.solve(&dict).expect("Solver failed");
+
+        assert!(results.contains("war"), "w at position 0 is allowed");
+        assert!(!results.contains("raw"), "w at position > 0 is not allowed");
+        assert!(results.contains("ware"), "w at position 0 is allowed");
+        assert!(
+            results.contains("area"),
+            "no w needed, all letters are anywhere-letters"
+        );
+    }
+
+    #[test]
+    fn test_solver_case_sensitive_required_start() {
+        // Uppercase in present means that letter must be at position 0
+        let mut config = Config::new().with_letters("Ware").with_present("W");
+        config.case_sensitive = Some(true);
+        config.minimal_word_length = Some(3);
+
+        let solver = Solver::new(config);
+        let dict = Dictionary::from_words(&["war", "raw", "ware", "area", "era"]);
+
+        let results = solver.solve(&dict).expect("Solver failed");
+
+        assert!(
+            results.contains("war"),
+            "starts with w, w is required start"
+        );
+        assert!(!results.contains("raw"), "w not at start");
+        assert!(results.contains("ware"), "starts with w");
+        assert!(!results.contains("area"), "does not start with w");
+        assert!(!results.contains("era"), "does not start with w");
+    }
+
+    #[test]
+    fn test_solver_case_sensitive_both_cases() {
+        // Both 'W' (start-only) and 'w' (anywhere) in letters
+        let mut config = Config::new().with_letters("Wware").with_present("a");
+        config.case_sensitive = Some(true);
+        config.minimal_word_length = Some(3);
+
+        let solver = Solver::new(config);
+        let dict = Dictionary::from_words(&["war", "raw", "ware", "awe"]);
+
+        let results = solver.solve(&dict).expect("Solver failed");
+
+        // Both 'W' (start-only) and 'w' (anywhere) contribute to allowed.
+        // 'w' (lowercase) is in anywhere, so w can appear at any position.
+        assert!(results.contains("war"));
+        assert!(results.contains("raw"), "lowercase w allows w anywhere");
+        assert!(results.contains("ware"));
+        assert!(results.contains("awe"), "lowercase w allows w anywhere");
+    }
+
+    #[test]
+    fn test_solver_case_sensitive_walrus_scenario() {
+        let mut config = Config::new().with_letters("Walrus").with_present("Wl");
+        config.case_sensitive = Some(true);
+        config.minimal_word_length = Some(4);
+
+        let solver = Solver::new(config);
+        let dict =
+            Dictionary::from_words(&["awls", "laws", "slaw", "wall", "walls", "walrus", "lure"]);
+
+        let results = solver.solve(&dict).expect("Solver failed");
+
+        assert!(!results.contains("awls"), "awls does not start with w");
+        assert!(!results.contains("laws"), "laws does not start with w");
+        assert!(!results.contains("slaw"), "slaw does not start with w");
+        assert!(
+            !results.contains("lure"),
+            "lure does not contain l... wait it does, but no w start"
+        );
+        assert!(
+            results.contains("wall"),
+            "wall starts with w and contains l"
+        );
+        assert!(
+            results.contains("walls"),
+            "walls starts with w and contains l"
+        );
+        assert!(
+            results.contains("walrus"),
+            "walrus starts with w and contains l"
+        );
+    }
+
+    #[test]
+    fn test_solver_case_sensitive_all_lowercase_no_constraint() {
+        // When case_sensitive=true but all letters are lowercase, no positional constraint applies
+        let mut config = Config::new().with_letters("walrus").with_present("wl");
+        config.case_sensitive = Some(true);
+        config.minimal_word_length = Some(4);
+
+        let solver = Solver::new(config);
+        let dict = Dictionary::from_words(&["awls", "laws", "wall", "walrus"]);
+
+        let results = solver.solve(&dict).expect("Solver failed");
+
+        assert!(
+            results.contains("awls"),
+            "all lowercase: w is an anywhere letter, no start constraint"
+        );
+        assert!(
+            results.contains("laws"),
+            "all lowercase: w is an anywhere letter"
+        );
+        assert!(results.contains("wall"));
+        assert!(results.contains("walrus"));
+    }
+
+    #[test]
+    fn test_solver_case_sensitive_multiple_uppercase_required_error() {
+        let mut config = Config::new().with_letters("ABcde").with_present("AB");
+        config.case_sensitive = Some(true);
+
+        let solver = Solver::new(config);
+        let dict = Dictionary::from_words(&["abcd"]);
+
+        let result = solver.solve(&dict);
+        assert!(
+            result.is_err(),
+            "multiple uppercase required letters should error"
+        );
+        let err_msg = result.unwrap_err().to_string();
+        assert!(err_msg.contains("At most one uppercase"));
     }
 }
