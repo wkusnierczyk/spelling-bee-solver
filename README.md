@@ -339,6 +339,9 @@ make clean-android
 The default debug APK requires a running Metro bundler to load the JavaScript bundle. To build a self-contained APK with the JS bundle embedded (no Metro needed):
 
 ```bash
+# Cross-compile the FFI native libraries (required before building the APK)
+make build-android
+
 mkdir -p sbs-mobile/android/app/src/main/assets
 
 (cd sbs-mobile && npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res)
