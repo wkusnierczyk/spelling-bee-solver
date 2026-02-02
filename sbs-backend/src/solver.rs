@@ -36,13 +36,9 @@ impl Solver {
             .as_ref()
             .ok_or(SbsError::ConfigError("No letters provided".to_string()))?;
 
-        let required_str = self
-            .config
-            .present
-            .as_ref()
-            .ok_or(SbsError::ConfigError(
-                "No required letter provided".to_string(),
-            ))?;
+        let required_str = self.config.present.as_ref().ok_or(SbsError::ConfigError(
+            "No required letter provided".to_string(),
+        ))?;
 
         let min_len = self.config.minimal_word_length.unwrap_or(4);
         let max_len = self.config.maximal_word_length.unwrap_or(usize::MAX);
@@ -132,7 +128,7 @@ impl Solver {
             // If case-sensitive and required_start is set, first char must match
             if all_req_present {
                 if let Some(start_char) = ctx.required_start {
-                    if current_word.chars().next() != Some(start_char) {
+                    if !current_word.starts_with(start_char) {
                         all_req_present = false;
                     }
                 }
@@ -321,7 +317,10 @@ mod tests {
 
         let results = solver.solve(&dict).expect("Solver failed");
 
-        assert!(results.contains("fade"), "uppercase input should be normalized");
+        assert!(
+            results.contains("fade"),
+            "uppercase input should be normalized"
+        );
         assert!(results.contains("faced"));
     }
 
@@ -345,7 +344,10 @@ mod tests {
         assert!(results.contains("war"), "w at position 0 is allowed");
         assert!(!results.contains("raw"), "w at position > 0 is not allowed");
         assert!(results.contains("ware"), "w at position 0 is allowed");
-        assert!(results.contains("area"), "no w needed, all letters are anywhere-letters");
+        assert!(
+            results.contains("area"),
+            "no w needed, all letters are anywhere-letters"
+        );
     }
 
     #[test]
@@ -360,7 +362,10 @@ mod tests {
 
         let results = solver.solve(&dict).expect("Solver failed");
 
-        assert!(results.contains("war"), "starts with w, w is required start");
+        assert!(
+            results.contains("war"),
+            "starts with w, w is required start"
+        );
         assert!(!results.contains("raw"), "w not at start");
         assert!(results.contains("ware"), "starts with w");
         assert!(!results.contains("area"), "does not start with w");
@@ -396,7 +401,10 @@ mod tests {
         let dict = Dictionary::from_words(&["abcd"]);
 
         let result = solver.solve(&dict);
-        assert!(result.is_err(), "multiple uppercase required letters should error");
+        assert!(
+            result.is_err(),
+            "multiple uppercase required letters should error"
+        );
         let err_msg = result.unwrap_err().to_string();
         assert!(err_msg.contains("At most one uppercase"));
     }
