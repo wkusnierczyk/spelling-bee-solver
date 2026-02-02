@@ -38,12 +38,14 @@ function App() {
   const [results, setResults] = useState<ResultItem[]>([])
   const [candidateCount, setCandidateCount] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
+  const [progress, setProgress] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   const clearResults = () => {
     setResults([]);
     setCandidateCount(null);
     setError(null);
+    setProgress('');
   };
 
   // Load API key from localStorage when validator changes
@@ -91,41 +93,91 @@ function App() {
     setError(null);
     setResults([]);
     setCandidateCount(null);
+    setProgress('');
 
-    try {
-      const payload: SolveRequest = {
-        letters: letters,
-        present: present,
-        repeats: repeats ? parseInt(repeats) : null
-      };
+    const payload: SolveRequest = {
+      letters: letters,
+      present: present,
+      repeats: repeats ? parseInt(repeats) : null
+    };
 
-      if (validator) {
-        payload.validator = validator;
-        if (validator === 'custom' && validatorUrl) {
-          payload["validator-url"] = validatorUrl;
-        }
-        if ((validator === 'merriam-webster' || validator === 'wordnik') && apiKey) {
-          payload["api-key"] = apiKey;
-        }
+    if (validator) {
+      payload.validator = validator;
+      if (validator === 'custom' && validatorUrl) {
+        payload["validator-url"] = validatorUrl;
       }
-
-      const response = await axios.post('/solve', payload);
-      const data = response.data;
-
-      // Server returns ValidationSummary when validator is used, string[] otherwise
-      if (data && typeof data === 'object' && !Array.isArray(data) && 'entries' in data) {
-        const summary = data as ValidationSummary;
-        setCandidateCount(summary.candidates);
-        setResults(summary.entries);
-      } else {
-        setResults(data);
+      if ((validator === 'merriam-webster' || validator === 'wordnik') && apiKey) {
+        payload["api-key"] = apiKey;
       }
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to connect to backend';
-      console.error(err);
-      setError(message);
-    } finally {
-      setLoading(false);
+    }
+
+    // Use SSE streaming endpoint when a validator is selected
+    if (validator) {
+      try {
+        const response = await fetch('/solve-stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          throw new Error(await response.text() || 'Request failed');
+        }
+
+        const reader = response.body?.getReader();
+        if (!reader) throw new Error('No response body');
+
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() ?? '';
+
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const data = JSON.parse(line.slice(6));
+
+            if (data.progress) {
+              setProgress(`Validating: ${data.progress.done} / ${data.progress.total}`);
+            } else if (data.error) {
+              setError(data.error);
+            } else if (data.result) {
+              const result = data.result;
+              if (result.entries) {
+                const summary = result as ValidationSummary;
+                setCandidateCount(summary.candidates);
+                setResults(summary.entries);
+              } else {
+                setResults(result);
+              }
+            }
+          }
+        }
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Failed to connect to backend';
+        console.error(err);
+        setError(message);
+      } finally {
+        setProgress('');
+        setLoading(false);
+      }
+    } else {
+      // No validator — use the regular endpoint
+      try {
+        const response = await axios.post('/solve', payload);
+        setResults(response.data);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Failed to connect to backend';
+        console.error(err);
+        setError(message);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -200,6 +252,8 @@ function App() {
       <button onClick={handleSolve} disabled={!isValid || loading}>
         {loading ? 'Solving...' : 'Solve'}
       </button>
+
+      {progress !== '' && <div className="progress">{progress}</div>}
 
       {error && <div className="error">{error}</div>}
 
