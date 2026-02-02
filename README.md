@@ -777,7 +777,7 @@ make deploy-minikube
 make test-minikube
 
 # Open the frontend service in your browser
-make url-minikube
+make open-minikube
 
 # Clean up the Helm release (cluster stays running)
 make clean-minikube
@@ -961,7 +961,7 @@ make test-mobile
 sbs --about
 
 sbs: Spelling Bee Solver tool
-├─ version:   0.6.1
+├─ version:   0.6.2
 ├─ developer: mailto:waclaw.kusnierczyk@gmail.com
 ├─ source:    https://github.com/wkusnierczyk/spelling-bee-solver
 ├─ licence:   MIT https://opensource.org/licenses/MIT

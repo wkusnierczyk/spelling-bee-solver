@@ -3,4 +3,4 @@ name: sbs-gcp
 description: GKE Helm chart for Spelling Bee Solver
 type: application
 version: 1.0.0
-appVersion: "0.6.1"
+appVersion: "0.6.2"
