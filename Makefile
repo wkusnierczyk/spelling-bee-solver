@@ -283,6 +283,10 @@ stop-docker-stack: stop-frontend-container stop-backend-container
 remove-docker-stack: remove-frontend-container remove-backend-container
 	$(call info, "Stack removed.")
 
+docker-url: ## Open the Docker stack frontend URL in the default browser
+	$(call info, "Opening Frontend at http://localhost:5173...")
+	open http://localhost:5173
+
 
 # --- Docker Compose Orchestration ---
 
@@ -300,6 +304,10 @@ test-compose-stack:
 stop-compose-stack:
 	$(call info, "Stopping Docker Compose stack...")
 	@docker compose down
+
+compose-url: ## Open the Docker Compose stack frontend URL in the default browser
+	$(call info, "Opening Frontend at http://localhost:5173...")
+	open http://localhost:5173
 
 clean-compose-stack: ## Remove containers, images, and build cache for a fresh rebuild
 	$(call info, "Stopping and removing containers...")
