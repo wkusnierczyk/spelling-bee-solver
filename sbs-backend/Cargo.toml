@@ -1,6 +1,6 @@
 [package]
 name = "sbs"
-version = "0.4.1"
+version = "0.5.0"
 edition = "2021"
 authors = ["Your Name <your.email@example.com>"]
 description = "Spelling Bee Solver Core Library"
