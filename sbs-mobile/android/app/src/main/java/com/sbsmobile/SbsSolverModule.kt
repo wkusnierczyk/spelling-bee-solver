@@ -62,7 +62,7 @@ class SbsSolverModule(reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
-    fun solve(letters: String, present: String, repeats: Int, minLength: Int, maxLength: Int, promise: Promise) {
+    fun solve(letters: String, present: String, repeats: Int, promise: Promise) {
         if (letters.isEmpty() || present.isEmpty()) {
             promise.reject("INVALID_INPUT", "letters and present must not be empty")
             return
@@ -75,12 +75,6 @@ class SbsSolverModule(reactContext: ReactApplicationContext) :
                 put("present", present)
                 if (repeats > 0) {
                     put("repeats", repeats)
-                }
-                if (minLength > 0) {
-                    put("minimal-word-length", minLength)
-                }
-                if (maxLength > 0) {
-                    put("maximal-word-length", maxLength)
                 }
             }
 

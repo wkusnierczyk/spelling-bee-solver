@@ -19,14 +19,14 @@ describe('solve', () => {
     mockSolver.solve.mockResolvedValue('{"words":[]}');
 
     await solve('xyz', 'x', 2);
-    expect(mockSolver.solve).toHaveBeenCalledWith('xyz', 'x', 2, 0, 0);
+    expect(mockSolver.solve).toHaveBeenCalledWith('xyz', 'x', 2);
   });
 
   it('uses default repeats of 0', async () => {
     mockSolver.solve.mockResolvedValue('{"words":[]}');
 
     await solve('abc', 'a');
-    expect(mockSolver.solve).toHaveBeenCalledWith('abc', 'a', 0, 0, 0);
+    expect(mockSolver.solve).toHaveBeenCalledWith('abc', 'a', 0);
   });
 });
 
