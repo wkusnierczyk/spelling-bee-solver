@@ -307,6 +307,14 @@ function App() {
         />
       </div>
 
+      <button onClick={handleSolve} disabled={!isValid || loading}>
+        {loading ? 'Solving...' : 'Solve'}
+      </button>
+
+      {progress !== '' && <div className="progress">{progress}</div>}
+
+      {error && <div className="error">{error}</div>}
+
       <div className="input-group toggle-row">
         <label>Case Sensitive</label>
         <label className="toggle">
@@ -424,14 +432,6 @@ function App() {
           />
         </div>
       )}
-
-      <button onClick={handleSolve} disabled={!isValid || loading}>
-        {loading ? 'Solving...' : 'Solve'}
-      </button>
-
-      {progress !== '' && <div className="progress">{progress}</div>}
-
-      {error && <div className="error">{error}</div>}
 
       <div className="results">
         {results.length > 0 && (
