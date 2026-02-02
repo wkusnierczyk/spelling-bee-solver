@@ -150,7 +150,7 @@ describe('App', () => {
       await pressables[0].props.onPress();
     });
 
-    expect(mockSolver.solve).toHaveBeenCalledWith('abcdefg', 'a', 0, 0, 0, false);
+    expect(mockSolver.solve).toHaveBeenCalledWith('abcdefg', 'a', 0, 0, 0, 0);
   });
 
   it('performs case-sensitive offline solve with preserved uppercase', async () => {
@@ -188,7 +188,7 @@ describe('App', () => {
       await pressables[0].props.onPress();
     });
 
-    expect(mockSolver.solve).toHaveBeenCalledWith('Walrus', 'Wl', 0, 0, 0, true);
+    expect(mockSolver.solve).toHaveBeenCalledWith('Walrus', 'Wl', 0, 0, 0, 1);
   });
 
   it('falls back to offline when online fails', async () => {

@@ -62,7 +62,7 @@ class SbsSolverModule(reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
-    fun solve(letters: String, present: String, repeats: Int, minLength: Int, maxLength: Int, caseSensitive: Boolean, promise: Promise) {
+    fun solve(letters: String, present: String, repeats: Int, minLength: Int, maxLength: Int, caseSensitive: Int, promise: Promise) {
         if (letters.isEmpty() || present.isEmpty()) {
             promise.reject("INVALID_INPUT", "letters and present must not be empty")
             return
@@ -82,7 +82,7 @@ class SbsSolverModule(reactContext: ReactApplicationContext) :
                 if (maxLength > 0) {
                     put("maximal-word-length", maxLength)
                 }
-                if (caseSensitive) {
+                if (caseSensitive != 0) {
                     put("case-sensitive", true)
                 }
             }

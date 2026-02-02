@@ -22,7 +22,7 @@ export async function solve(
   maxLength: number = 0,
   caseSensitive: boolean = false,
 ): Promise<string[]> {
-  const json: string = await SbsSolver.solve(letters, present, repeats, minLength, maxLength, caseSensitive);
+  const json: string = await SbsSolver.solve(letters, present, repeats, minLength, maxLength, caseSensitive ? 1 : 0);
   const result: SolveResult = JSON.parse(json);
   return result.words;
 }
