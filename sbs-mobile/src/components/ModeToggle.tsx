@@ -17,7 +17,7 @@ export default function ModeToggle({
   return (
     <View style={styles.container}>
       <View style={styles.row}>
-        <Text style={styles.label}>Online mode</Text>
+        <Text style={styles.label}>Remote backend</Text>
         <Switch value={online} onValueChange={onToggle} />
       </View>
       {online && (
