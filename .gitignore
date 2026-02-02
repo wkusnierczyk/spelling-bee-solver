@@ -15,6 +15,7 @@ CLAUDE_AUDIT.md
 
 # Secrets
 .env
+*.key
 
 # Node / React
 node_modules/

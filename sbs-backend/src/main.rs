@@ -15,9 +15,19 @@ use std::process;
 #[command(disable_version_flag = true)]
 #[command(about = "Spelling Bee Solver tool", long_about = None)]
 struct Args {
-    #[arg(short = 'a', long = "available-letters", alias = "available", alias = "letters")]
+    #[arg(
+        short = 'a',
+        long = "available-letters",
+        alias = "available",
+        alias = "letters"
+    )]
     available_letters: Option<String>,
-    #[arg(short = 'r', long = "required-letters", alias = "required", alias = "present")]
+    #[arg(
+        short = 'r',
+        long = "required-letters",
+        alias = "required",
+        alias = "present"
+    )]
     required_letters: Option<String>,
     #[arg(short, long)]
     config: Option<PathBuf>,
@@ -163,9 +173,12 @@ fn main() {
                         }
                     };
 
-                let summary = validator.validate_words(&sorted_words);
+                let summary =
+                    validator.validate_words_with_progress(&sorted_words, &|done, total| {
+                        eprint!("\rValidating: {}/{}", done, total);
+                    });
                 eprintln!(
-                    "Generated {} candidates, {} validated by {}.",
+                    "\rGenerated {} candidates, {} validated by {}.",
                     summary.candidates,
                     summary.validated,
                     kind.display_name()
