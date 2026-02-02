@@ -32,5 +32,4 @@ jobs:
       - name: Cleanup
         if: always()
         run: |
-          make stop-docker-stack
-          make remove-docker-stack
+          make clean-docker

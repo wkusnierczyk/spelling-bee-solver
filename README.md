@@ -739,8 +739,8 @@ make test-docker-stack
 # Stop all containers
 make stop-docker-stack
 
-# Remove all containers
-make remove-docker-stack
+# Remove all Docker containers (manual and Compose), images, and build cache
+make clean-docker
 ```
 
 ### Local deployment with Docker Compose
@@ -756,8 +756,8 @@ make docker-compose-up
 # Stop the whole stack
 make docker-compose-down
 
-# Remove containers, images, and build cache for a fresh rebuild
-make clean-compose-stack
+# Remove all Docker containers (manual and Compose), images, and build cache
+make clean-docker
 ```
 
 ### Local deployment with Kubernetes and Minikube

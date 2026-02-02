@@ -67,7 +67,8 @@ endif
 	check-mobile \
 	run-mobile \
 	clean-mobile \
-	test-mobile
+	test-mobile \
+	clean-docker
 
 help: ## Show help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -280,8 +281,13 @@ test-docker-stack: setup-dictionary build-backend-image build-frontend-image sta
 stop-docker-stack: stop-frontend-container stop-backend-container
 	$(call info, "Stack stopped.")
 
-remove-docker-stack: remove-frontend-container remove-backend-container
-	$(call info, "Stack removed.")
+clean-docker: ## Remove all Docker containers (manual and Compose), images, and build cache
+	$(call info, "Stopping and removing Docker containers...")
+	@docker stop $(SBS_BACKEND_NAME) $(SBS_FRONTEND_NAME) 2>/dev/null || true
+	@docker rm $(SBS_BACKEND_NAME) $(SBS_FRONTEND_NAME) 2>/dev/null || true
+	@docker compose down --rmi local 2>/dev/null || true
+	@docker builder prune -f
+	$(call info, "Docker clean complete.")
 
 docker-url: ## Open the Docker stack frontend URL in the default browser
 	$(call info, "Opening Frontend at http://localhost:5173...")
@@ -309,11 +315,6 @@ compose-url: ## Open the Docker Compose stack frontend URL in the default browse
 	$(call info, "Opening Frontend at http://localhost:5173...")
 	open http://localhost:5173
 
-clean-compose-stack: ## Remove containers, images, and build cache for a fresh rebuild
-	$(call info, "Stopping and removing containers...")
-	@docker compose down --rmi local
-	@docker builder prune -f
-	$(call info, "Clean complete. Run 'make start-compose-stack' to rebuild.")
 
 
 # --- Full Stack Testing ---
