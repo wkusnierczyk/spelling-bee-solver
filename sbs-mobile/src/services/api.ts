@@ -42,6 +42,7 @@ export async function solveOnline(
   validatorUrl?: string,
   minLength?: number,
   maxLength?: number,
+  caseSensitive?: boolean,
 ): Promise<{
   results: string[] | WordEntry[];
   candidateCount: number | null;
@@ -53,6 +54,10 @@ export async function solveOnline(
   }
   if (maxLength && maxLength > 0) {
     payload['maximal-word-length'] = maxLength;
+  }
+
+  if (caseSensitive) {
+    payload['case-sensitive'] = true;
   }
 
   if (validator) {

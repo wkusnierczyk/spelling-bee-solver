@@ -11,6 +11,7 @@ interface SolveRequest {
   "validator-url"?: string;
   "minimal-word-length"?: number;
   "maximal-word-length"?: number;
+  "case-sensitive"?: boolean;
 }
 
 interface WordEntry {
@@ -45,6 +46,7 @@ function App() {
   const [lengthLimits, setLengthLimits] = useState(false)
   const [minLength, setMinLength] = useState('4')
   const [maxLength, setMaxLength] = useState('')
+  const [caseSensitive, setCaseSensitive] = useState(false)
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -74,7 +76,8 @@ function App() {
   };
 
   const handleLettersChange = (value: string) => {
-    const unique = [...new Set(value.split(''))].join('');
+    const normalized = caseSensitive ? value : value.toLowerCase();
+    const unique = [...new Set(normalized.split(''))].join('');
     setLetters(unique);
     const filtered = present.split('').filter(c => unique.includes(c)).join('');
     if (filtered !== present) setPresent(filtered);
@@ -82,11 +85,25 @@ function App() {
   };
 
   const handlePresentChange = (value: string) => {
-    const unique = [...new Set(value.split(''))].join('');
+    const normalized = caseSensitive ? value : value.toLowerCase();
+    const unique = [...new Set(normalized.split(''))].join('');
+    if (caseSensitive) {
+      const uppercaseCount = unique.split('').filter(c => c !== c.toLowerCase()).length;
+      if (uppercaseCount > 1) return;
+    }
     if (unique.split('').every(c => letters.includes(c))) {
       setPresent(unique);
       clearResults();
     }
+  };
+
+  const handleCaseSensitiveToggle = (checked: boolean) => {
+    setCaseSensitive(checked);
+    if (!checked) {
+      setLetters(letters.toLowerCase());
+      setPresent(present.toLowerCase());
+    }
+    clearResults();
   };
 
   const handleRepeatsChange = (value: string) => {
@@ -143,6 +160,10 @@ function App() {
       present: present,
       repeats: repeatsEnabled && repeats ? parseInt(repeats, 10) : null
     };
+
+    if (caseSensitive) {
+      payload["case-sensitive"] = true;
+    }
 
     if (lengthLimits) {
       if (minLength) {
@@ -284,6 +305,18 @@ function App() {
           value={present}
           onChange={(e) => handlePresentChange(e.target.value)}
         />
+      </div>
+
+      <div className="input-group toggle-row">
+        <label>Case Sensitive</label>
+        <label className="toggle">
+          <input
+            type="checkbox"
+            checked={caseSensitive}
+            onChange={(e) => handleCaseSensitiveToggle(e.target.checked)}
+          />
+          <span className="toggle-slider" />
+        </label>
       </div>
 
       <div className="input-group toggle-row">

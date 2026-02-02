@@ -20,8 +20,9 @@ export async function solve(
   repeats: number = 0,
   minLength: number = 0,
   maxLength: number = 0,
+  caseSensitive: boolean = false,
 ): Promise<string[]> {
-  const json: string = await SbsSolver.solve(letters, present, repeats, minLength, maxLength);
+  const json: string = await SbsSolver.solve(letters, present, repeats, minLength, maxLength, caseSensitive);
   const result: SolveResult = JSON.parse(json);
   return result.words;
 }

@@ -150,7 +150,7 @@ describe('App', () => {
       await pressables[0].props.onPress();
     });
 
-    expect(mockSolver.solve).toHaveBeenCalledWith('abcdefg', 'a', 0, 0, 0);
+    expect(mockSolver.solve).toHaveBeenCalledWith('abcdefg', 'a', 0, 0, 0, false);
   });
 
   it('falls back to offline when online fails', async () => {

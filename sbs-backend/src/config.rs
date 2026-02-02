@@ -20,6 +20,8 @@ pub struct Config {
     pub maximal_word_length: Option<usize>,
     pub output: Option<String>,
     pub repeats: Option<usize>,
+    #[serde(rename = "case-sensitive")]
+    pub case_sensitive: Option<bool>,
 
     // Path to the seed dictionary for generation
     #[serde(default = "default_dict_path")]
@@ -49,6 +51,7 @@ impl Config {
             maximal_word_length: None,
             output: None,
             repeats: None,
+            case_sensitive: None,
             dictionary: default_dict_path(),
             #[cfg(feature = "validator")]
             validator: None,

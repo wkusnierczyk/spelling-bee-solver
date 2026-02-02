@@ -16,6 +16,7 @@ import {SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
 import LetterInput from './src/components/LetterInput';
 import MaxRepeats from './src/components/MaxRepeats';
 import LengthLimits from './src/components/LengthLimits';
+import CaseSensitiveToggle from './src/components/CaseSensitiveToggle';
 import ModeToggle from './src/components/ModeToggle';
 import ValidatorPicker, {ValidatorKind} from './src/components/ValidatorPicker';
 import {ResultItem, isWordEntry} from './src/components/ResultsList';
@@ -56,6 +57,7 @@ function App() {
   const [validator, setValidator] = useState<ValidatorKind>('');
   const [apiKey, setApiKey] = useState('');
   const [validatorUrl, setValidatorUrl] = useState('');
+  const [caseSensitive, setCaseSensitive] = useState(false);
   const [results, setResults] = useState<ResultItem[]>([]);
   const [candidateCount, setCandidateCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
@@ -70,7 +72,8 @@ function App() {
   };
 
   const handleLettersChange = (value: string) => {
-    const unique = [...new Set(value.split(''))].join('');
+    const normalized = caseSensitive ? value : value.toLowerCase();
+    const unique = [...new Set(normalized.split(''))].join('');
     setLetters(unique);
     const filtered = present.split('').filter(c => unique.includes(c)).join('');
     if (filtered !== present) {
@@ -80,11 +83,26 @@ function App() {
   };
 
   const handlePresentChange = (value: string) => {
-    const unique = [...new Set(value.split(''))].join('');
+    const normalized = caseSensitive ? value : value.toLowerCase();
+    const unique = [...new Set(normalized.split(''))].join('');
+    if (caseSensitive) {
+      // Max one uppercase letter allowed
+      const uppercaseCount = unique.split('').filter(c => c !== c.toLowerCase()).length;
+      if (uppercaseCount > 1) return;
+    }
     if (unique.split('').every(c => letters.includes(c))) {
       setPresent(unique);
       clearResults();
     }
+  };
+
+  const handleCaseSensitiveToggle = (value: boolean) => {
+    setCaseSensitive(value);
+    if (!value) {
+      setLetters(letters.toLowerCase());
+      setPresent(present.toLowerCase());
+    }
+    clearResults();
   };
 
   const handleRepeatsChange = (value: string) => {
@@ -152,6 +170,7 @@ function App() {
           validatorUrl || undefined,
           minLen || undefined,
           maxLen || undefined,
+          caseSensitive || undefined,
         );
         setResults(response.results);
         setCandidateCount(response.candidateCount);
@@ -167,7 +186,7 @@ function App() {
     try {
       const minLen = lengthLimits && minLength ? parseInt(minLength, 10) : 0;
       const maxLen = lengthLimits && maxLength ? parseInt(maxLength, 10) : 0;
-      words = await solve(letters, present, repeatsNum, minLen, maxLen);
+      words = await solve(letters, present, repeatsNum, minLen, maxLen, caseSensitive);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Solve failed';
       setError(message);
@@ -246,6 +265,11 @@ function App() {
         present={present}
         onLettersChange={handleLettersChange}
         onPresentChange={handlePresentChange}
+      />
+
+      <CaseSensitiveToggle
+        enabled={caseSensitive}
+        onToggle={handleCaseSensitiveToggle}
       />
 
       <MaxRepeats
