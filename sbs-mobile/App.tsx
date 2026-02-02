@@ -299,6 +299,15 @@ function App() {
         onRepeatsChange={handleRepeatsChange}
       />
 
+      <LengthLimits
+        enabled={lengthLimits}
+        minLength={minLength}
+        maxLength={maxLength}
+        onToggle={handleLengthLimitsToggle}
+        onMinChange={handleMinLengthChange}
+        onMaxChange={handleMaxLengthChange}
+      />
+
       <ValidatorPicker
         enabled={validatorEnabled}
         validator={validator}
@@ -308,15 +317,6 @@ function App() {
         onValidatorChange={setValidator}
         onApiKeyChange={setApiKey}
         onValidatorUrlChange={setValidatorUrl}
-      />
-
-      <LengthLimits
-        enabled={lengthLimits}
-        minLength={minLength}
-        maxLength={maxLength}
-        onToggle={handleLengthLimitsToggle}
-        onMinChange={handleMinLengthChange}
-        onMaxChange={handleMaxLengthChange}
       />
 
       <ModeToggle
