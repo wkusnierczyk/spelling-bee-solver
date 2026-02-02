@@ -34,6 +34,10 @@ The tool _generalizes_ beyond the original NYT puzzle though.
 | Letter repetition | Configurable repetition limits                             | Unbounded repetition       |
 | Word length       | Configurable lower and upper bounds                        | Lower bound of 4           |
 
+## Status
+
+Spelling Bee Solver is **feature complete**.
+
 ## Dictionary validation
 
 The solver uses a _seed dictionary_ (a local word list) to generate candidate words.
