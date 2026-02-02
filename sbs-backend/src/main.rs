@@ -15,10 +15,10 @@ use std::process;
 #[command(disable_version_flag = true)]
 #[command(about = "Spelling Bee Solver tool", long_about = None)]
 struct Args {
-    #[arg(short, long)]
-    letters: Option<String>,
-    #[arg(short, long)]
-    present: Option<String>,
+    #[arg(short = 'a', long = "available-letters", alias = "available", alias = "letters")]
+    available_letters: Option<String>,
+    #[arg(short = 'r', long = "required-letters", alias = "required", alias = "present")]
+    required_letters: Option<String>,
     #[arg(short, long)]
     config: Option<PathBuf>,
     #[arg(short, long)]
@@ -81,11 +81,11 @@ fn main() {
         Config::default()
     };
 
-    if let Some(l) = args.letters {
+    if let Some(l) = args.available_letters {
         config.letters = Some(l);
     }
-    if let Some(p) = args.present {
-        config.present = Some(p);
+    if let Some(r) = args.required_letters {
+        config.present = Some(r);
     }
     if let Some(d) = args.dictionary {
         config.dictionary = d;
@@ -122,8 +122,8 @@ fn main() {
     #[cfg(feature = "validator")]
     let validator_url = args.validator_url.or(config.validator_url.clone());
 
-    if config.letters.is_none() || config.present.is_none() {
-        eprintln!("Error: letters and present letters are required.");
+    if config.letters.is_none() {
+        eprintln!("Error: letters are required.");
         process::exit(1);
     }
 

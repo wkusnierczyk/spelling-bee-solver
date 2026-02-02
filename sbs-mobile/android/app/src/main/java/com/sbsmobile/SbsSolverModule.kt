@@ -63,11 +63,6 @@ class SbsSolverModule(reactContext: ReactApplicationContext) :
 
     @ReactMethod
     fun solve(letters: String, present: String, repeats: Int, minLength: Int, maxLength: Int, caseSensitive: Int, promise: Promise) {
-        if (letters.isEmpty() || present.isEmpty()) {
-            promise.reject("INVALID_INPUT", "letters and present must not be empty")
-            return
-        }
-
         try {
             val dictPtr = ensureDictionary()
             val request = JSONObject().apply {

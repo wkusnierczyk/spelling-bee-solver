@@ -283,7 +283,7 @@ function App() {
     setDownloadOpen(false);
   };
 
-  const isValid = letters.length > 0 && present.length > 0;
+  const isValid = letters.length > 0;
 
   return (
     <div className="container">

@@ -36,9 +36,8 @@ impl Solver {
             .as_ref()
             .ok_or(SbsError::ConfigError("No letters provided".to_string()))?;
 
-        let required_str = self.config.present.as_ref().ok_or(SbsError::ConfigError(
-            "No required letter provided".to_string(),
-        ))?;
+        let empty = String::new();
+        let required_str = self.config.present.as_ref().unwrap_or(&empty);
 
         let min_len = self.config.minimal_word_length.unwrap_or(4);
         let max_len = self.config.maximal_word_length.unwrap_or(usize::MAX);
@@ -464,5 +463,22 @@ mod tests {
         );
         let err_msg = result.unwrap_err().to_string();
         assert!(err_msg.contains("At most one uppercase"));
+    }
+
+    #[test]
+    fn test_solver_no_required_letters() {
+        let mut config = Config::new().with_letters("ab");
+        config.minimal_word_length = Some(1);
+        let solver = Solver::new(config);
+        let dict = Dictionary::from_words(&["a", "ab", "ba", "b", "abc", "ca"]);
+        let result = solver.solve(&dict).unwrap();
+        // All words using only a and b should match
+        assert!(result.contains("a"));
+        assert!(result.contains("ab"));
+        assert!(result.contains("ba"));
+        assert!(result.contains("b"));
+        // Words with letters outside available set should not match
+        assert!(!result.contains("abc"));
+        assert!(!result.contains("ca"));
     }
 }
