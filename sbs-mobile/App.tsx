@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import {SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
 import LetterInput from './src/components/LetterInput';
+import LengthLimits from './src/components/LengthLimits';
 import ModeToggle from './src/components/ModeToggle';
 import ValidatorPicker, {ValidatorKind} from './src/components/ValidatorPicker';
 import {ResultItem, isWordEntry} from './src/components/ResultsList';
@@ -40,6 +41,9 @@ function App() {
   const [letters, setLetters] = useState('');
   const [present, setPresent] = useState('');
   const [repeats, setRepeats] = useState('');
+  const [lengthLimits, setLengthLimits] = useState(false);
+  const [minLength, setMinLength] = useState('4');
+  const [maxLength, setMaxLength] = useState('');
   const [online, setOnline] = useState(false);
   const [backendUrl, setBackendUrl] = useState('http://10.0.2.2:8080');
   const [validator, setValidator] = useState<ValidatorKind>('');
@@ -79,6 +83,35 @@ function App() {
     clearResults();
   };
 
+  const handleMinLengthChange = (value: string) => {
+    setMinLength(value);
+    if (value && maxLength) {
+      const min = parseInt(value, 10);
+      const max = parseInt(maxLength, 10);
+      if (!isNaN(min) && !isNaN(max) && min > max) {
+        setMaxLength(value);
+      }
+    }
+    clearResults();
+  };
+
+  const handleMaxLengthChange = (value: string) => {
+    setMaxLength(value);
+    if (value && minLength) {
+      const max = parseInt(value, 10);
+      const min = parseInt(minLength, 10);
+      if (!isNaN(max) && !isNaN(min) && max < min) {
+        setMinLength(value);
+      }
+    }
+    clearResults();
+  };
+
+  const handleLengthLimitsToggle = (value: boolean) => {
+    setLengthLimits(value);
+    clearResults();
+  };
+
   const isValid = letters.length > 0 && present.length > 0;
 
   const handleSolve = async () => {
@@ -93,6 +126,8 @@ function App() {
 
     if (online) {
       try {
+        const minLen = lengthLimits && minLength ? parseInt(minLength, 10) : 0;
+        const maxLen = lengthLimits && maxLength ? parseInt(maxLength, 10) : 0;
         const response = await solveOnline(
           backendUrl,
           letters,
@@ -101,6 +136,8 @@ function App() {
           validator || undefined,
           apiKey || undefined,
           validatorUrl || undefined,
+          minLen || undefined,
+          maxLen || undefined,
         );
         setResults(response.results);
         setCandidateCount(response.candidateCount);
@@ -114,7 +151,9 @@ function App() {
     }
 
     try {
-      words = await solve(letters, present, repeatsNum);
+      const minLen = lengthLimits && minLength ? parseInt(minLength, 10) : 0;
+      const maxLen = lengthLimits && maxLength ? parseInt(maxLength, 10) : 0;
+      words = await solve(letters, present, repeatsNum, minLen, maxLen);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Solve failed';
       setError(message);
@@ -173,6 +212,15 @@ function App() {
         onValidatorChange={setValidator}
         onApiKeyChange={setApiKey}
         onValidatorUrlChange={setValidatorUrl}
+      />
+
+      <LengthLimits
+        enabled={lengthLimits}
+        minLength={minLength}
+        maxLength={maxLength}
+        onToggle={handleLengthLimitsToggle}
+        onMinChange={handleMinLengthChange}
+        onMaxChange={handleMaxLengthChange}
       />
 
       <ModeToggle
