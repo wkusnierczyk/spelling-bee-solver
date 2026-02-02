@@ -1,13 +1,17 @@
 import React, {useState} from 'react';
 import {
+  ActionSheetIOS,
   ActivityIndicator,
   FlatList,
+  Platform,
   Pressable,
+  Share,
   StatusBar,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import {formatPlaintext, formatJson, formatMarkdown} from './src/utils/formats';
 import {SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
 import LetterInput from './src/components/LetterInput';
 import LengthLimits from './src/components/LengthLimits';
@@ -190,6 +194,37 @@ function App() {
     setLoading(false);
   };
 
+  const handleShare = (format: 'plain' | 'json' | 'markdown') => {
+    const formatters = {plain: formatPlaintext, json: formatJson, markdown: formatMarkdown};
+    const content = formatters[format](results);
+    Share.share({message: content});
+  };
+
+  const showSharePicker = () => {
+    const options = ['Plaintext', 'JSON', 'Markdown', 'Cancel'];
+    const formats: ('plain' | 'json' | 'markdown')[] = ['plain', 'json', 'markdown'];
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {options, cancelButtonIndex: 3, title: 'Export Format'},
+        (index) => {
+          if (index < 3) {
+            handleShare(formats[index]);
+          }
+        },
+      );
+    } else {
+      // Android: use a simple alert-based picker
+      const {Alert} = require('react-native');
+      Alert.alert('Export Format', 'Choose a format', [
+        {text: 'Plaintext', onPress: () => handleShare('plain')},
+        {text: 'JSON', onPress: () => handleShare('json')},
+        {text: 'Markdown', onPress: () => handleShare('markdown')},
+        {text: 'Cancel', style: 'cancel'},
+      ]);
+    }
+  };
+
   const header = candidateCount !== null
     ? `Found ${results.length} words (from ${candidateCount} candidates):`
     : `Found ${results.length} words:`;
@@ -251,7 +286,14 @@ function App() {
         <Text style={styles.noResults}>No words found</Text>
       )}
 
-      {results.length > 0 && <Text style={styles.header}>{header}</Text>}
+      {results.length > 0 && (
+        <View style={styles.resultsHeaderRow}>
+          <Text style={styles.header}>{header}</Text>
+          <Pressable style={styles.shareButton} onPress={showSharePicker}>
+            <Text style={styles.shareButtonText}>Share</Text>
+          </Pressable>
+        </View>
+      )}
     </View>
   );
 
@@ -347,6 +389,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#666',
     marginTop: 4,
+  },
+  resultsHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  shareButton: {
+    backgroundColor: '#007bff',
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  shareButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 

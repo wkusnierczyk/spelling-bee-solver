@@ -41,6 +41,12 @@ struct Args {
     minimal_word_length: Option<usize>,
     #[arg(long)]
     maximal_word_length: Option<usize>,
+    #[arg(
+        long,
+        default_value = "plain",
+        help = "Output format: plain, json, markdown"
+    )]
+    format: String,
     #[arg(long)]
     about: bool,
 }
@@ -127,6 +133,15 @@ fn main() {
 
     let solver = Solver::new(config.clone());
 
+    let format = args.format.as_str();
+    if !matches!(format, "plain" | "json" | "markdown") {
+        eprintln!(
+            "Error: unsupported format '{}'. Use plain, json, or markdown.",
+            format
+        );
+        process::exit(1);
+    }
+
     match solver.solve(&dictionary) {
         Ok(words) => {
             let mut sorted_words: Vec<_> = words.into_iter().collect();
@@ -151,30 +166,8 @@ fn main() {
                     kind.display_name()
                 );
 
-                if let Some(ref out_path) = config.output {
-                    match File::create(out_path) {
-                        Ok(mut file) => {
-                            for entry in &summary.entries {
-                                if let Err(e) = writeln!(
-                                    file,
-                                    "{}\t{}\t{}",
-                                    entry.word, entry.definition, entry.url
-                                ) {
-                                    eprintln!("Write error: {}", e);
-                                    process::exit(1);
-                                }
-                            }
-                        }
-                        Err(e) => {
-                            eprintln!("Failed to create output file '{}': {}", out_path, e);
-                            process::exit(1);
-                        }
-                    }
-                } else {
-                    for entry in &summary.entries {
-                        println!("{}\t{}\t{}", entry.word, entry.definition, entry.url);
-                    }
-                }
+                let output = format_validated(&summary.entries, format);
+                write_output(&output, config.output.as_deref());
                 true
             } else {
                 false
@@ -187,30 +180,124 @@ fn main() {
 
             eprintln!("Generated {} words.", sorted_words.len());
 
-            if let Some(out_path) = config.output {
-                match File::create(&out_path) {
-                    Ok(mut file) => {
-                        for w in &sorted_words {
-                            if let Err(e) = writeln!(file, "{}", w) {
-                                eprintln!("Write error: {}", e);
-                                process::exit(1);
-                            }
-                        }
-                    }
-                    Err(e) => {
-                        eprintln!("Failed to create output file '{}': {}", out_path, e);
-                        process::exit(1);
-                    }
-                }
-            } else {
-                for w in &sorted_words {
-                    println!("{}", w);
-                }
-            }
+            let output = format_unvalidated(&sorted_words, format);
+            write_output(&output, config.output.as_deref());
         }
         Err(e) => {
             eprintln!("Error: {}", e);
             process::exit(1);
         }
+    }
+}
+
+fn format_unvalidated(words: &[String], format: &str) -> String {
+    match format {
+        "json" => serde_json::to_string_pretty(words).unwrap(),
+        "markdown" => words
+            .iter()
+            .map(|w| format!("**{}**", w))
+            .collect::<Vec<_>>()
+            .join("\n\n"),
+        _ => words.join("\n"),
+    }
+}
+
+#[cfg(feature = "validator")]
+fn format_validated(entries: &[sbs::WordEntry], format: &str) -> String {
+    match format {
+        "json" => serde_json::to_string_pretty(entries).unwrap(),
+        "markdown" => entries
+            .iter()
+            .map(|e| format!("**{}**\n{}", e.word, e.definition))
+            .collect::<Vec<_>>()
+            .join("\n\n"),
+        _ => entries
+            .iter()
+            .map(|e| format!("{}\t{}", e.word, e.definition))
+            .collect::<Vec<_>>()
+            .join("\n"),
+    }
+}
+
+fn write_output(content: &str, out_path: Option<&str>) {
+    if let Some(path) = out_path {
+        match File::create(path) {
+            Ok(mut file) => {
+                if let Err(e) = file.write_all(content.as_bytes()) {
+                    eprintln!("Write error: {}", e);
+                    process::exit(1);
+                }
+            }
+            Err(e) => {
+                eprintln!("Failed to create output file '{}': {}", path, e);
+                process::exit(1);
+            }
+        }
+    } else {
+        println!("{}", content);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_format_unvalidated_plain() {
+        let words = vec!["apple".to_string(), "bat".to_string()];
+        assert_eq!(format_unvalidated(&words, "plain"), "apple\nbat");
+    }
+
+    #[test]
+    fn test_format_unvalidated_json() {
+        let words = vec!["apple".to_string(), "bat".to_string()];
+        let output = format_unvalidated(&words, "json");
+        let parsed: Vec<String> = serde_json::from_str(&output).unwrap();
+        assert_eq!(parsed, vec!["apple", "bat"]);
+    }
+
+    #[test]
+    fn test_format_unvalidated_markdown() {
+        let words = vec!["apple".to_string(), "bat".to_string()];
+        assert_eq!(
+            format_unvalidated(&words, "markdown"),
+            "**apple**\n\n**bat**"
+        );
+    }
+
+    #[cfg(feature = "validator")]
+    #[test]
+    fn test_format_validated_plain() {
+        let entries = vec![sbs::WordEntry {
+            word: "apple".to_string(),
+            definition: "A fruit".to_string(),
+            url: "https://example.com/apple".to_string(),
+        }];
+        assert_eq!(format_validated(&entries, "plain"), "apple\tA fruit");
+    }
+
+    #[cfg(feature = "validator")]
+    #[test]
+    fn test_format_validated_json() {
+        let entries = vec![sbs::WordEntry {
+            word: "apple".to_string(),
+            definition: "A fruit".to_string(),
+            url: "https://example.com/apple".to_string(),
+        }];
+        let output = format_validated(&entries, "json");
+        let parsed: Vec<serde_json::Value> = serde_json::from_str(&output).unwrap();
+        assert_eq!(parsed[0]["word"], "apple");
+        assert_eq!(parsed[0]["definition"], "A fruit");
+    }
+
+    #[cfg(feature = "validator")]
+    #[test]
+    fn test_format_validated_markdown() {
+        let entries = vec![sbs::WordEntry {
+            word: "apple".to_string(),
+            definition: "A fruit".to_string(),
+            url: "https://example.com/apple".to_string(),
+        }];
+        assert_eq!(format_validated(&entries, "markdown"), "**apple**\nA fruit");
     }
 }
