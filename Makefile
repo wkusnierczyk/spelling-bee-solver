@@ -82,7 +82,8 @@ endif
 	auth-gcp build-gcp push-gcp deploy-gcp-candidate test-gcp-candidate promote-gcp-candidate cleanup-gcp-candidate deploy-gcp \
 	gcp-auth gcp-build gcp-push gcp-deploy-candidate gcp-test-candidate gcp-promote-candidate gcp-cleanup-candidate gcp-deploy \
 	status-gcp logs-gcp-backend logs-gcp-frontend rollback-gcp destroy-gcp hibernate-gcp wake-gcp \
-	gcp-status gcp-logs-backend gcp-logs-frontend gcp-rollback gcp-destroy gcp-hibernate gcp-wake
+	gcp-status gcp-logs-backend gcp-logs-frontend gcp-rollback gcp-destroy gcp-hibernate gcp-wake \
+	clean clean-backend backend-clean clean-frontend frontend-clean
 
 help: ## Show help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -114,6 +115,17 @@ format: ## Format backend code using rustfmt
 	cd $(SBS_BACKEND_DIR) && cargo fmt
 
 check: format lint test ## Run format, lint, and test
+
+clean-backend: ## Remove Rust build artifacts (sbs-backend and sbs-ffi)
+	$(call info, "Cleaning sbs-backend build artifacts...")
+	cd $(SBS_BACKEND_DIR) && cargo clean
+	$(call info, "Cleaning sbs-ffi build artifacts...")
+	cd sbs-ffi && cargo clean
+	$(call info, "Backend clean complete.")
+
+# Aliases
+backend-clean: clean-backend ## Alias for clean-backend
+
 
 # --- Version Management ---
 
@@ -199,9 +211,15 @@ start-frontend: ## Run the frontend dev server in the foreground
 	$(call info, "Starting frontend...")
 	cd $(SBS_FRONTEND_DIR) && npm run dev
 
+clean-frontend: ## Remove frontend build output and dependencies
+	$(call info, "Cleaning frontend build artifacts...")
+	rm -rf $(SBS_FRONTEND_DIR)/dist $(SBS_FRONTEND_DIR)/node_modules
+	$(call info, "Frontend clean complete.")
+
 # Aliases
 frontend-build: build-frontend ## Alias for build-frontend
 frontend-start: start-frontend ## Alias for start-frontend
+frontend-clean: clean-frontend ## Alias for clean-frontend
 
 
 # --- Local Orchestration ---
@@ -749,6 +767,11 @@ mobile-run: run-mobile ## Alias for run-mobile
 mobile-check: check-mobile ## Alias for check-mobile
 mobile-test: test-mobile ## Alias for test-mobile
 mobile-clean: clean-mobile ## Alias for clean-mobile
+
+
+# --- Unified Clean ---
+
+clean: clean-backend clean-frontend clean-docker clean-android clean-mobile ## Remove all local build artifacts
 
 
 generate-diagrams: ## Build all architecture diagrams with mmdc
